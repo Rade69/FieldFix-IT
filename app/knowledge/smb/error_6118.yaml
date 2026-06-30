@@ -1,0 +1,25 @@
+code: 6118
+message: "The list of servers for this workgroup is not currently available."
+meaning: >
+  Windows ne može da pretraži mrežu (network browsing) i nađe listu
+  servera u workgroup-u. Ovo nije problem sa direktnim pristupom po IP
+  adresi — samo sa pretraživanjem mreže.
+likely_causes:
+  - "Network Discovery je isključen na lokalnoj ili ciljnoj mašini"
+  - "Windows Computer Browser servis je zaustavljen ili onemogućen"
+  - "Firewall blokira UDP port 137/138 (NetBIOS name service / datagram)"
+  - "Nema master browsera u mreži (svi računari su Windows 10/11 bez posebnih podešavanja)"
+  - "IPv6 i IPv4 browsing su u konfliktu"
+recommended_checks:
+  - "Pristupiti direktno po IP: net view \\\\192.168.x.x"
+  - "Provjeriti Network Discovery: Get-NetFirewallRule -DisplayGroup 'Network Discovery'"
+  - "Provjeriti Computer Browser servis: Get-Service Browser"
+  - "Pokušati pristup po hostname umjesto po browsing listi"
+safe_fixes:
+  - "Uključiti Network Discovery (Control Panel ili PS)"
+  - "Koristiti direktnu IP adresu umjesto pretraživanja mreže"
+dangerous_fixes: []
+notes: >
+  Greška 6118 se javlja pri 'net view' bez IP-a (listing mreže). Ako
+  direktan pristup po IP-u radi (\\192.168.x.x), problem je isključivo
+  u network browsing infrastrukturi, ne u SMB konekciji.

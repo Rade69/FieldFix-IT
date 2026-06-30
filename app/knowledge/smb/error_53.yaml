@@ -1,0 +1,24 @@
+code: 53
+message: "The network path was not found."
+meaning: >
+  Windows ne može pronaći SMB server na navedenom mrežnom putu.
+  Problem je na nivou mreže, DNS-a ili rutiranja — ne nužno SMB konfiguracija.
+likely_causes:
+  - "Ciljna IP adresa je pogrešna ili nedostupna"
+  - "DNS ne može da razriješi hostname u IP adresu"
+  - "Firewall blokira port 445 (SMB) ili 139 (NetBIOS)"
+  - "Ciljna mašina je isključena ili nije na mreži"
+  - "Ruting između mreža nije konfigurisan (cross-subnet scenarij)"
+recommended_checks:
+  - "Ping ciljne IP adrese (provjeriti osnovnu konekciju)"
+  - "Test-NetConnection -ComputerName IP -Port 445 (provjeriti SMB port)"
+  - "Koristiti IP umjesto hostname da bi se isključio DNS problem"
+  - "Provjeriti firewall pravila na ciljnoj i lokalnoj mašini"
+  - "Provjeriti da li je ciljna mašina online"
+safe_fixes:
+  - "Ispraviti IP adresu ili hostname"
+  - "Provjeriti mrežni kabl / WiFi konekciju"
+dangerous_fixes: []
+notes: >
+  Greška 53 ne znači nužno da je SMB problem — osnovna mrežna
+  konekcija može biti prekinuta. Uvijek provjeriti ping prije SMB-a.

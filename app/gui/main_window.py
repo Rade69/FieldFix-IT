@@ -1,8 +1,9 @@
-from PySide6.QtWidgets import QHBoxLayout, QMainWindow, QStackedWidget, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QApplication, QHBoxLayout, QMainWindow, QStackedWidget, QVBoxLayout, QWidget
 
 from app.gui.dashboard import DashboardPage
 from app.gui.pages.about_page import AboutPage
 from app.gui.pages.firewall_page import FirewallPage
+from app.gui.pages.fix_center_page import FixCenterPage
 from app.gui.pages.network_page import NetworkPage
 from app.gui.pages.printers_page import PrintersPage
 from app.gui.pages.reports_page import ReportsPage
@@ -22,6 +23,7 @@ _PAGES = [
     ("Services", ServicesPage),
     ("Printers", PrintersPage),
     ("Topology", TopologyPage),
+    ("Fix Center", FixCenterPage),
     ("Reports", ReportsPage),
     ("Settings", SettingsPage),
     ("About", AboutPage),
@@ -32,14 +34,24 @@ class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("FieldFix IT — Windows IT Diagnostics & Repair Tool")
-        self.resize(1280, 800)
+        self.setMinimumSize(900, 600)
+        self._fit_to_screen()
 
         self.pages = QStackedWidget()
+        _instances = []
         for _, page_cls in _PAGES:
-            self.pages.addWidget(page_cls())
+            inst = page_cls()
+            self.pages.addWidget(inst)
+            _instances.append(inst)
 
         self.sidebar = Sidebar([name for name, _ in _PAGES])
         self.sidebar.page_selected.connect(self.pages.setCurrentIndex)
+
+        # Wire Dashboard "Open Fix Center" → navigate to Fix Center page
+        _fix_idx = next(i for i, (n, _) in enumerate(_PAGES) if n == "Fix Center")
+        _instances[0].open_fix_center.connect(
+            lambda: self.pages.setCurrentIndex(_fix_idx)
+        )
 
         body = QWidget()
         body_layout = QHBoxLayout(body)
@@ -58,3 +70,14 @@ class MainWindow(QMainWindow):
 
         # Scan Mode is always the default — Fix Mode is a manual, later opt-in (see docs/architecture_notes.md).
         self.statusBar().showMessage("Scan Mode: Read Only")
+
+    def _fit_to_screen(self) -> None:
+        """Size and center the window within the available screen area (excludes taskbar)."""
+        screen = QApplication.primaryScreen().availableGeometry()
+        w = min(1280, int(screen.width() * 0.95))
+        h = min(800, int(screen.height() * 0.92))
+        self.resize(w, h)
+        self.move(
+            screen.x() + (screen.width() - w) // 2,
+            screen.y() + (screen.height() - h) // 2,
+        )

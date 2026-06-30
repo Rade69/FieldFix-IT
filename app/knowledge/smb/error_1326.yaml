@@ -1,0 +1,24 @@
+code: 1326
+message: "Logon failure: unknown user name or bad password."
+meaning: >
+  Autentifikacija je potpuno neuspješna — korisničko ime nije pronađeno
+  ili lozinka nije ispravna. Server je odbio logon.
+likely_causes:
+  - "Pogrešno korisničko ime ili lozinka"
+  - "Korisnik ne postoji na ciljnoj mašini (workgroup scenarij)"
+  - "Korisnički nalog je lockovan zbog previše neuspješnih pokušaja"
+  - "Pokušaj pristupa bez vjerodajnica na sistemu koji zahtijeva autentifikaciju"
+  - "Caps Lock je uključen pri unosu lozinke"
+recommended_checks:
+  - "Provjeriti tačno ime korisnika na ciljnom sistemu"
+  - "Pokušati prijavu na ciljni sistem direktno (Console/RDP)"
+  - "Provjeriti lockout status naloga na serveru"
+  - "net use \\\\IP /user:COMPUTERNAME\\username password (eksplicitni format)"
+safe_fixes:
+  - "Ispraviti korisničko ime i lozinku"
+  - "Otključati nalog na serveru ako je lockovan"
+dangerous_fixes: []
+notes: >
+  U workgroup okruženju (bez domena) mora se navesti computername prefix:
+  COMPUTERNAME\\username. Bez ovoga Windows može pokušati s pogrešnim
+  nalogom.

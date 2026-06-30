@@ -1,0 +1,26 @@
+code: 1272
+message: "You can't access this shared folder because your organization's security policies block unauthenticated guest access."
+meaning: >
+  Windows klijent odbija pristup bez vjerodajnica jer je guest pristup
+  onemogućen grupnom politikom ili SMB klijent konfiguracijom.
+  Uvedeno u Windows 10 verziji 1709 kao sigurnosna mjera.
+likely_causes:
+  - "EnableInsecureGuestLogons je False na klijentu (default od Win 10 v1709)"
+  - "Server zahtijeva guest / anonymous pristup (npr. stariji NAS uređaj)"
+  - "Dijeljeni resurs nije zaštićen lozinkom ali klijent odbija takav pristup"
+likely_scenarios:
+  - "Pristup starom NAS-u, Samba serveru ili Windows XP/7 mašini bez lozinke"
+  - "Pristup printer share-u koji ne zahtijeva autentifikaciju"
+recommended_checks:
+  - "Get-SmbClientConfiguration | Select-Object EnableInsecureGuestLogons"
+  - "Provjeriti da li server zahtijeva lozinku ili dozvoljava guest pristup"
+  - "Pokušati pristup sa eksplicitnim username/password"
+safe_fixes:
+  - "Koristiti eksplicitne vjerodajnice (net use \\\\IP /user:username password)"
+dangerous_fixes:
+  - "Uključiti EnableInsecureGuestLogons (smanjuje bezbjednost klijenta)"
+notes: >
+  SIGURNOSNA NAPOMENA: EnableInsecureGuestLogons je isključen po defaultu
+  iz sigurnosnih razloga. Uključivanje ga nije preporučeno u domenskom
+  okruženju ili mreži s više korisnika. Preferirati eksplicitne vjerodajnice
+  ili konfiguraciju servera da zahtijeva autentifikaciju.

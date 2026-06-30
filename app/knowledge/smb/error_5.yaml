@@ -1,0 +1,22 @@
+code: 5
+message: "Access is denied."
+meaning: >
+  Autentifikacija je uspjela (ili je guest pristup dozvoljen), ali korisnik
+  nema dozvolu za pristup dijeljenom resursu ili folderu.
+likely_causes:
+  - "Korisnik nema share-level dozvolu (Share Permissions)"
+  - "Korisnik nema NTFS dozvolu na folderu koji je dijeljeni"
+  - "Korisnički nalog je lockovan ili onemogućen na serveru"
+  - "UAC blokira pristup administrativnim share-ovima (C$, ADMIN$)"
+recommended_checks:
+  - "Provjeriti Share Permissions na serveru (Get-SmbShareAccess -Name <share>)"
+  - "Provjeriti NTFS dozvole na target folderu"
+  - "Pokušati sa administratorskim nalogom"
+  - "Provjeriti da li je nalog aktivan na serveru"
+safe_fixes:
+  - "Dodati korisnika u share permissions na serveru"
+  - "Ispraviti NTFS dozvole na target folderu"
+dangerous_fixes: []
+notes: >
+  Razlika od greške 5 vs 1326: greška 5 znači da je identitet poznat
+  ali nije ovlašćen. Greška 1326 znači da autentifikacija nije uspjela.
