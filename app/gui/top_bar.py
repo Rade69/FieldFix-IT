@@ -126,6 +126,7 @@ class TopBar(QFrame):
     """Global header bar. Populates with real system data via a single PS call at startup."""
 
     open_settings = Signal()
+    start_scan    = Signal()
 
     def __init__(self) -> None:
         super().__init__()
@@ -223,7 +224,9 @@ class TopBar(QFrame):
         layout.addWidget(settings_btn)
         layout.addSpacing(16)
 
-        layout.addWidget(QPushButton("▶ Start New Scan ▾"))
+        self._scan_btn = QPushButton("▶ Start New Scan ▾")
+        self._scan_btn.clicked.connect(self.start_scan)
+        layout.addWidget(self._scan_btn)
 
     def update_network(self, network: NetworkData | None) -> None:
         """Refresh IP and network labels after a Dashboard scan completes."""

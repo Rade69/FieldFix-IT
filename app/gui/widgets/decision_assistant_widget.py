@@ -10,7 +10,7 @@ _DUMMY_STEPS = [
 ]
 
 _DUMMY_PROBLEM = "Cannot access \\\\192.168.100.155?"
-_DUMMY_CONCLUSION = "Pogrešne vjerodajnice ili dozvole."
+_DUMMY_CONCLUSION = "Wrong credentials or insufficient permissions."
 
 
 def _build_step_chain(steps: list) -> QHBoxLayout:
@@ -65,7 +65,7 @@ class DecisionAssistantWidget(QFrame):
 
         layout.addLayout(_build_step_chain(_DUMMY_STEPS))
 
-        cause_label = QLabel("Najvjerovatniji uzrok:")
+        cause_label = QLabel("Most likely cause:")
         cause_label.setStyleSheet("color: #9aa4b2; font-size: 11px;")
         layout.addWidget(cause_label)
 

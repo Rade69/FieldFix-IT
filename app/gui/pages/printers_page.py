@@ -261,7 +261,7 @@ class PrintersPage(QWidget):
 
         # ── Errors ───────────────────────────────────────────────────────────
         if data.errors:
-            frame, layout = _panel(f"⚠ Upozorenja ({len(data.errors)})")
+            frame, layout = _panel(f"⚠ Warnings ({len(data.errors)})")
             for e in data.errors:
                 lbl = QLabel(e)
                 lbl.setStyleSheet("color: #d29922;")

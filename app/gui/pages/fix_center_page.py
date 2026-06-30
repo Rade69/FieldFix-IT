@@ -198,10 +198,10 @@ class _FixActionCard(QFrame):
         a = self._action
         confirmed = QMessageBox.question(
             self,
-            "Potvrdi akciju",
+            "Confirm action",
             f"<b>{a.title}</b><br><br>"
-            f"Šta se mijenja: <i>{a.what_it_changes}</i><br><br>"
-            "Nastaviti?",
+            f"What changes: <i>{a.what_it_changes}</i><br><br>"
+            "Continue?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
             QMessageBox.StandardButton.Cancel,
         )
@@ -209,7 +209,7 @@ class _FixActionCard(QFrame):
             return
 
         self._apply_btn.setEnabled(False)
-        self._apply_btn.setText("Primjenjujem…")
+        self._apply_btn.setText("Applying…")
 
         from PySide6.QtWidgets import QApplication
         QApplication.processEvents()
@@ -217,19 +217,19 @@ class _FixActionCard(QFrame):
         result = self._runner.run(a.ps_command, timeout=20)
 
         if result.succeeded:
-            self._result_label.setText("✓ Uspješno primijenjeno")
+            self._result_label.setText("✓ Successfully applied")
             self._result_label.setStyleSheet("font-size: 11px; color: #3fb950; font-weight: bold;")
             self._skip_btn.setEnabled(False)
-            self._apply_btn.setText("✓ Primijenjeno")
+            self._apply_btn.setText("✓ Applied")
             self._apply_btn.setStyleSheet(
                 "QPushButton { background: #1a4731; color: #3fb950; border-radius: 4px; padding: 4px 10px; }"
             )
         else:
-            err = (result.stderr or "Nepoznata greška").strip()[:160]
-            self._result_label.setText(f"✕ Greška: {err}")
+            err = (result.stderr or "Unknown error").strip()[:160]
+            self._result_label.setText(f"✕ Error: {err}")
             self._result_label.setStyleSheet("font-size: 11px; color: #f85149;")
             self._apply_btn.setEnabled(True)
-            self._apply_btn.setText("▶ Pokušaj ponovo")
+            self._apply_btn.setText("▶ Retry")
 
         self._result_label.show()
 
@@ -291,7 +291,7 @@ class FixCenterPage(QWidget):
             b_layout.setSpacing(12)
 
             b_msg = QLabel(
-                "⚠  Pokrenuto bez administratorskih privilegija — Apply dugmad su isključena."
+                "⚠  Running without administrator privileges — Apply buttons are disabled."
             )
             b_msg.setStyleSheet("color: #d29922;")
             b_msg.setWordWrap(True)

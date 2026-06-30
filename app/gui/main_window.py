@@ -70,9 +70,11 @@ class MainWindow(QMainWindow):
             lambda r: self._top_bar.update_network(r.report.network)
         )
         _settings_idx = next(i for i, (n, _) in enumerate(_PAGES) if n == "Settings")
-        self._top_bar.open_settings.connect(
-            lambda: self.pages.setCurrentIndex(_settings_idx)
-        )
+        self._top_bar.open_settings.connect(lambda: _go(_settings_idx))
+
+        _dash_idx = next(i for i, (n, _) in enumerate(_PAGES) if n == "Dashboard")
+        _dashboard = _instances[_dash_idx]
+        self._top_bar.start_scan.connect(lambda: (_go(_dash_idx), _dashboard.run_scan()))
 
         central = QWidget()
         outer_layout = QVBoxLayout(central)

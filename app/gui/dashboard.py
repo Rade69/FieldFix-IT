@@ -214,6 +214,9 @@ class DashboardPage(QWidget):
 
     # ── Scan ────────────────────────────────────────────────────────────────
 
+    def run_scan(self) -> None:
+        self._run_scan()
+
     def _run_scan(self) -> None:
         self._scan_btn.setEnabled(False)
         self._status_label.setStyleSheet("color: #d29922;")
@@ -268,7 +271,7 @@ class DashboardPage(QWidget):
         )
 
         printer_count = len(report.printers.printers) if report.printers else 0
-        printer_detail = "Štampača pronađeno" if printer_count else "Nema štampača"
+        printer_detail = "Printers found" if printer_count else "No printers found"
         self._card_printers.update(str(printer_count), "ok" if printer_count else "neutral", printer_detail)
 
         issue_count = len(issues)
@@ -276,7 +279,7 @@ class DashboardPage(QWidget):
             "critical" if any(i.severity >= RiskLevel.HIGH for i in issues)
             else ("warning" if issues else "ok")
         )
-        issue_detail = "Za pregled" if issue_count else "Sve u redu"
+        issue_detail = "Review required" if issue_count else "All good"
         self._card_issues.update(str(issue_count), issue_status, issue_detail)
 
         # Widgets

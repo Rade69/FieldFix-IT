@@ -45,7 +45,7 @@ def _nodes_from_scan(
     # This PC
     nodes.append({
         "icon": "🖥", "name": network.hostname or "This PC", "ip": local_ip,
-        "tag": "Ovaj računar", "tag_color": "#58a6ff",
+        "tag": "This PC", "tag_color": "#58a6ff",
     })
 
     # Gateway
@@ -54,7 +54,7 @@ def _nodes_from_scan(
         ok = network.gateway_reachable
         nodes.append({
             "icon": "🌐", "name": "Router / Gateway", "ip": gateway_ip,
-            "tag": "Aktivan" if ok else ("Nedostupan" if ok is False else "Unknown"),
+            "tag": "Active" if ok else ("Unreachable" if ok is False else "Unknown"),
             "tag_color": "#3fb950" if ok else ("#f85149" if ok is False else "#8b949e"),
         })
 
@@ -66,7 +66,7 @@ def _nodes_from_scan(
                 seen.add(ip)
                 nodes.append({
                     "icon": "🖨", "name": p.name, "ip": ip,
-                    "tag": "Štampač", "tag_color": "#a371f7",
+                    "tag": "Printer", "tag_color": "#a371f7",
                 })
 
     # ARP entries (remaining reachable devices)
@@ -162,7 +162,7 @@ class NetworkTopologyWidget(QFrame):
         outer.setSpacing(10)
 
         header_row = QHBoxLayout()
-        title = QLabel("Network Topology (detektovani uređaji na mreži)")
+        title = QLabel("Network Topology (detected devices)")
         title.setStyleSheet("font-weight: bold;")
         header_row.addWidget(title)
         header_row.addStretch(1)
@@ -209,7 +209,7 @@ class NetworkTopologyWidget(QFrame):
         outer.addLayout(bottom_row)
 
     def _show_placeholder(self) -> None:
-        lbl = QLabel("Pokrenite sken da vidite uređaje na mreži.")
+        lbl = QLabel("Run a scan to see network devices.")
         lbl.setStyleSheet("color: #9aa4b2; padding: 20px;")
         lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._nodes_row.addWidget(lbl)
@@ -229,7 +229,7 @@ class NetworkTopologyWidget(QFrame):
         nodes = _nodes_from_scan(network, printers)
 
         if not nodes:
-            lbl = QLabel("Nisu pronađeni uređaji na mreži.")
+            lbl = QLabel("No network devices found.")
             lbl.setStyleSheet("color: #9aa4b2;")
             self._nodes_row.addWidget(lbl)
             self._nodes_row.addStretch(1)
