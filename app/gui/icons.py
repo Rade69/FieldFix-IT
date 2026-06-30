@@ -1,6 +1,14 @@
+import sys
 from pathlib import Path
 
-_ICONS_DIR = Path(__file__).resolve().parent.parent / "resources" / "icons"
+
+def _base() -> Path:
+    if getattr(sys, "frozen", False):
+        return Path(sys._MEIPASS)
+    return Path(__file__).resolve().parent.parent
+
+
+_ICONS_DIR = _base() / "resources" / "icons"
 
 APP_ICON_ICO = _ICONS_DIR / "fieldfix_icon.ico"
 APP_ICON_16 = _ICONS_DIR / "fieldfix_icon_16.png"

@@ -1,36 +1,38 @@
+from __future__ import annotations
+
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
 
-from app.core.risk_level import RiskLevel
+from app.core.issue import Issue
 from app.gui.widgets.risk_badge import RiskBadge
 
-# Dummy data only — replaced by real Recommendation objects once Fix Center exists (Faza 13).
-_DUMMY_ACTIONS = [
-    ("Enable File and Printer Sharing (FW)", RiskLevel.LOW),
-    ("Enable Network Discovery (FW)", RiskLevel.LOW),
-    ("Set Network Profile to Private", RiskLevel.LOW),
-    ("Start Required Services", RiskLevel.LOW),
-]
 
-
-def _build_row(title: str, risk: RiskLevel) -> QHBoxLayout:
+def _build_row(title: str, severity_str: str) -> QHBoxLayout:
     row = QHBoxLayout()
-    icon = QLabel("🛡")
-    title_label = QLabel(title)
-    row.addWidget(icon)
-    row.addWidget(title_label)
-    row.addWidget(RiskBadge(str(risk)))
+    row.addWidget(QLabel("🛡"))
+    lbl = QLabel(title)
+    lbl.setWordWrap(False)
+    row.addWidget(lbl)
+    row.addWidget(RiskBadge(severity_str))
     row.addStretch(1)
-    review_button = QPushButton("Review")
-    row.addWidget(review_button)
+    review_btn = QPushButton("Review")
+    # Review is inert until Fix Center is wired (Faza 13).
+    row.addWidget(review_btn)
     return row
 
 
-class QuickActionsWidget(QFrame):
-    """Quick Actions panel.
+def _clear_layout(layout) -> None:
+    while layout.count():
+        item = layout.takeAt(0)
+        if w := item.widget():
+            w.deleteLater()
+        elif child := item.layout():
+            _clear_layout(child)
 
-    Buttons say "Review", never "Apply" — Dashboard must never execute a fix
-    directly (see docs/architecture_notes.md, "Dashboard: Review Fix, ne
-    Apply"). Inert until Fix Center (Faza 13) wires the real review/apply flow.
+
+class QuickActionsWidget(QFrame):
+    """Quick Actions panel. Review buttons are inert until Fix Center (Faza 13).
+
+    Dashboard must never execute a fix directly — see docs/architecture_notes.md.
     """
 
     def __init__(self) -> None:
@@ -43,8 +45,24 @@ class QuickActionsWidget(QFrame):
         title.setStyleSheet("font-weight: bold;")
         layout.addWidget(title)
 
-        for action_title, risk in _DUMMY_ACTIONS:
-            layout.addLayout(_build_row(action_title, risk))
+        self._content = QVBoxLayout()
+        layout.addLayout(self._content)
+        self._placeholder()
 
-        open_fix_center_button = QPushButton("🔧 Open Fix Center (Detailed Fixes)")
-        layout.addWidget(open_fix_center_button)
+        self._fix_center_btn = QPushButton("🔧 Open Fix Center (Detailed Fixes)")
+        layout.addWidget(self._fix_center_btn)
+
+    def _placeholder(self) -> None:
+        lbl = QLabel("Run a scan to see recommended actions.")
+        lbl.setStyleSheet("color: #9aa4b2;")
+        self._content.addWidget(lbl)
+
+    def update_data(self, issues: tuple[Issue, ...]) -> None:
+        _clear_layout(self._content)
+        if not issues:
+            lbl = QLabel("✓ No actions required.")
+            lbl.setStyleSheet("color: #3fb950;")
+            self._content.addWidget(lbl)
+            return
+        for issue in issues[:4]:  # top 4 issues as review actions
+            self._content.addLayout(_build_row(issue.title, str(issue.severity)))
