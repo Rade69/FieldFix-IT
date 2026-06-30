@@ -1,0 +1,23 @@
+code: 86
+message: "The specified network password is not correct."
+meaning: >
+  Windows je pokušao autentifikaciju ali je lozinka pogrešna.
+  Sličan grešci 1326 ali specifičan za SMB/network password kontekst.
+likely_causes:
+  - "Pogrešna lozinka za korisnika na ciljnoj mašini"
+  - "Cached credentials u Windows Credential Manager su zastarjele"
+  - "Korisnik je promijenio lozinku na serveru ali nije na klijentu"
+  - "Različiti korisnici s istim imenom a različitim lozinkama (workgroup scenarij)"
+recommended_checks:
+  - "Provjeriti Credential Manager (Control Panel > Credential Manager)"
+  - "Pokušati pristup sa eksplicitnim korisničkim imenom i lozinkom"
+  - "cmdkey /list da vidite sačuvane vjerodajnice"
+  - "Provjeriti da li se korisnik može prijaviti lokalno na server"
+safe_fixes:
+  - "Obrisati zastarjele vjerodajnice iz Credential Manager-a"
+  - "Koristiti ispravnu lozinku (net use \\\\IP /user:username password)"
+dangerous_fixes: []
+notes: >
+  U workgroup okruženju (bez domena) Windows matching-uje korisnike po
+  imenu. Ako lokalni korisnik 'admin' ima drugu lozinku na ciljnoj mašini,
+  javlja se ova greška.

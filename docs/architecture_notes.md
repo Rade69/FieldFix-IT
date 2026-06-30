@@ -100,6 +100,25 @@ admin required". Per-action elevation je V2+.
 vratiti non-UTF8 u edge case-ovima. `raw_output` field čuva unstripped
 original za legacy parsere. Pratiti pri prvim stvarnim pozivima (Faza 4).
 
+## SMB module: net_view_parser izolacija i knowledge YAML semantika
+
+> Report: [agent_reports/2026-06-30_smb-module.md](../agent_reports/2026-06-30_smb-module.md)
+
+`net view` je legacy komanda bez JSON ekvivalenta. Njen text-parsing je
+izolovan isključivo u `app/modules/smb/net_view_parser.py` — ne u scanner-u,
+ne u GUI-u.
+
+**"Used as" kolona edge case:** kad share nije mapiran kao drive letter, kolona
+je prazna i komentar počinje na indeksu 2 umjesto 3 u whitespace-split listi.
+Parser koristi regex `^[A-Za-z]:$` da razlikuje drive-letter od komentara.
+
+`app/knowledge/smb/*.yaml` fajlovi su **isključivo dokumentacioni** (per
+"Knowledge Base: confidence_rules" odluka iznad). Scanner ih nikad ne čita.
+Python dict `NET_VIEW_ERROR_HINTS` u `scanner.py` je UI helper samo za
+poznate kodove (53, 64, 6118, 1272, 5, 86, 1326) — ne zamjenjuje knowledge
+base, samo prikazuje kratki hint u GUI. Decision Engine (Faza 10) će
+implementirati pravu logiku zaključivanja.
+
 ## Agent workflow: GitNexus handoff format + project_rooms (lagana forma)
 
 > Report: [agent_reports/2026-06-29_agent-workflow-claude-md.md](../agent_reports/2026-06-29_agent-workflow-claude-md.md)

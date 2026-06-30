@@ -1,0 +1,22 @@
+code: 64
+message: "The specified network name is no longer available."
+meaning: >
+  SMB sesija je uspostavljena ali je prekinuta tokom komunikacije.
+  Najčešće firewall koji prekida sesiju ili timeout.
+likely_causes:
+  - "Firewall (lokalni ili mrežni) je prekinuo uspostavljenu SMB sesiju"
+  - "Network timeout zbog sporog ili nestabilnog linka"
+  - "Server je bio dostupan ali je restartovan ili prešao u sleep"
+  - "Stateful firewall koji odbacuje dugovječne sesije"
+recommended_checks:
+  - "Provjeriti da li je server online i dostupan (ping)"
+  - "Provjeriti firewall sesion timeout pravila"
+  - "Pokušati ponovo — ako radi drugi put, problem je intermitentni dropout"
+  - "Provjeriti event log na serveru (System log, SMBServer events)"
+safe_fixes:
+  - "Restartovati SMB sesiju (ponovo pristupiti dijeljenom resursu)"
+dangerous_fixes: []
+notes: >
+  Razlika od greške 53: mreža JE funkcionisala, ali sesija je prekinuta
+  naknadno. Ovo je čest problem sa stateful firewall-ovima koji ubijaju
+  'idle' sesije.
