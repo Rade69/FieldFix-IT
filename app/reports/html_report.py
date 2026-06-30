@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import html
 
+from app.core.issue import Issue, RiskLevel
 from app.modules.network.models import NetworkData
 from app.modules.printers.models import PrintersData
 from app.modules.services.models import ServicesData
@@ -46,7 +47,7 @@ def _bool_cell(value: bool | None, true_good: bool = True) -> str:
     return f'<span class="{cls}">{label}</span>'
 
 
-def write_html(report: ScanReport) -> str:
+def write_html(report: ScanReport, issues: tuple[Issue, ...] = ()) -> str:
     body_parts: list[str] = []
 
     body_parts.append(
@@ -56,6 +57,9 @@ def write_html(report: ScanReport) -> str:
 <tr><td><strong>Hostname</strong></td><td>{_e(report.hostname) or '<span class="muted">—</span>'}</td></tr>
 </tbody></table>"""
     )
+
+    if issues:
+        body_parts.append(_issues_html(issues))
 
     body_parts.append(_network_html(report.network))
     body_parts.append(_smb_html(report.smb, report.smb_target_ip))
@@ -75,6 +79,61 @@ def write_html(report: ScanReport) -> str:
 <footer>FieldFix IT — Windows IT Diagnostics Tool &nbsp;|&nbsp; {_e(report.generated_at)}</footer>
 </body>
 </html>"""
+
+
+# ── Issues ───────────────────────────────────────────────────────────────────
+
+_RISK_COLOR = {
+    RiskLevel.CRITICAL: "#c62828",
+    RiskLevel.HIGH:     "#c62828",
+    RiskLevel.MEDIUM:   "#e65100",
+    RiskLevel.LOW:      "#2e7d32",
+}
+_RISK_ICON = {
+    RiskLevel.CRITICAL: "🔴",
+    RiskLevel.HIGH:     "🔴",
+    RiskLevel.MEDIUM:   "🟡",
+    RiskLevel.LOW:      "🟢",
+}
+
+
+def _issues_html(issues: tuple[Issue, ...]) -> str:
+    high   = sum(1 for i in issues if i.severity >= RiskLevel.HIGH)
+    medium = sum(1 for i in issues if i.severity == RiskLevel.MEDIUM)
+    low    = sum(1 for i in issues if i.severity < RiskLevel.MEDIUM)
+
+    s = (f"<h2>⚠ Diagnostic Issues ({len(issues)} found)</h2>\n"
+         "<table class='meta-table'><tbody>"
+         f"<tr><td>🔴 HIGH</td><td><strong style='color:#c62828'>{high}</strong></td></tr>"
+         f"<tr><td>🟡 MEDIUM</td><td><strong style='color:#e65100'>{medium}</strong></td></tr>"
+         f"<tr><td>🟢 LOW</td><td><strong style='color:#2e7d32'>{low}</strong></td></tr>"
+         "</tbody></table>\n")
+
+    for issue in issues:
+        color = _RISK_COLOR.get(issue.severity, "#333")
+        icon  = _RISK_ICON.get(issue.severity, "●")
+        s += (f"<h3 style='color:{color}'>{icon} {_e(issue.title)}</h3>\n"
+              f"<p class='muted'>"
+              f"Severity: <strong style='color:{color}'>{_e(str(issue.severity))}</strong> &nbsp;|&nbsp; "
+              f"Confidence: {_e(issue.confidence)} &nbsp;|&nbsp; "
+              f"Module: {_e(issue.related_module or '—')}</p>\n")
+
+        if issue.likely_cause:
+            s += f"<p><strong>Likely cause:</strong> {_e(issue.likely_cause)}</p>\n"
+
+        if issue.evidence:
+            s += "<p><strong>Evidence:</strong></p><ul>\n"
+            for ev in issue.evidence:
+                s += f"<li><code>{_e(ev)}</code></li>\n"
+            s += "</ul>\n"
+
+        if issue.recommended_actions:
+            s += "<p><strong>Recommended actions:</strong></p><ol>\n"
+            for act in issue.recommended_actions:
+                s += f"<li>{_e(act)}</li>\n"
+            s += "</ol>\n"
+
+    return s + "<hr>\n"
 
 
 # ── Network ────────────────────────────────────────────────────────────────────

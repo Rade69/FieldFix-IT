@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from app.core.issue import Issue, RiskLevel
 from app.modules.network.models import NetworkData
 from app.modules.printers.models import PrintersData
 from app.modules.services.models import ServicesData
@@ -20,7 +21,7 @@ def _bool_str(value: bool | None, true_good: bool = True) -> str:
     return _NO if true_good else _YES
 
 
-def write_markdown(report: ScanReport) -> str:
+def write_markdown(report: ScanReport, issues: tuple[Issue, ...] = ()) -> str:
     lines: list[str] = []
 
     lines += [
@@ -35,6 +36,9 @@ def write_markdown(report: ScanReport) -> str:
         "",
     ]
 
+    if issues:
+        lines += _issues_section(issues)
+
     lines += _network_section(report.network)
     lines += _smb_section(report.smb, report.smb_target_ip)
     lines += _services_section(report.services)
@@ -48,6 +52,46 @@ def write_markdown(report: ScanReport) -> str:
     ]
 
     return "\n".join(lines)
+
+
+# ── Issues ────────────────────────────────────────────────────────────────────
+
+_RISK_ICON = {RiskLevel.HIGH: "🔴", RiskLevel.MEDIUM: "🟡", RiskLevel.LOW: "🟢", RiskLevel.CRITICAL: "🔴"}
+
+
+def _issues_section(issues: tuple[Issue, ...]) -> list[str]:
+    high = [i for i in issues if i.severity >= RiskLevel.HIGH]
+    med  = [i for i in issues if i.severity == RiskLevel.MEDIUM]
+    low  = [i for i in issues if i.severity < RiskLevel.MEDIUM]
+
+    lines = [f"## ⚠ Diagnostic Issues ({len(issues)} found)", ""]
+    lines += [
+        f"| Severity | Count |",
+        f"|----------|-------|",
+        f"| 🔴 HIGH   | {len(high)} |",
+        f"| 🟡 MEDIUM | {len(med)} |",
+        f"| 🟢 LOW    | {len(low)} |",
+        "",
+    ]
+
+    for issue in issues:
+        icon = _RISK_ICON.get(issue.severity, "●")
+        lines += [f"### {icon} {issue.title}", ""]
+        lines += [f"**Severity:** {issue.severity}  |  **Confidence:** {issue.confidence}  |  **Module:** {issue.related_module or '—'}", ""]
+        if issue.likely_cause:
+            lines += [f"**Likely cause:** {issue.likely_cause}", ""]
+        if issue.evidence:
+            lines += ["**Evidence:**"]
+            for e in issue.evidence:
+                lines.append(f"- `{e}`")
+            lines.append("")
+        if issue.recommended_actions:
+            lines += ["**Recommended actions:**"]
+            for a in issue.recommended_actions:
+                lines.append(f"1. {a}")
+            lines.append("")
+
+    return lines + ["---", ""]
 
 
 # ── Network ────────────────────────────────────────────────────────────────────
