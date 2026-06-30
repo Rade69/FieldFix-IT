@@ -119,6 +119,35 @@ poznate kodove (53, 64, 6118, 1272, 5, 86, 1326) — ne zamjenjuje knowledge
 base, samo prikazuje kratki hint u GUI. Decision Engine (Faza 10) će
 implementirati pravu logiku zaključivanja.
 
+## Modular Layered Architecture — Engine pattern
+
+> Odluka donesena na prijedlog Codexa (Faza 9/10 prijelaz); potvrđena od korisnika.
+
+FieldFix IT arhitektura se formalno opisuje kao **Modular Layered Architecture**
+s Diagnostics Pipeline, Rule-Based Decision Engine i Knowledge-Driven
+Architecture. Moduli (Network, SMB, Firewall, Services, Printers) su **izvori
+podataka** — ne centralni akteri. Zajednički engine-i obrađuju te podatke:
+
+```text
+Core Engine
+  ├── Scanner Engine   — app/modules/*/scanner.py (već postoji)
+  ├── Decision Engine  — app/core/decision_engine.py (Faza 10)
+  ├── Report Engine    — app/reports/ (Faza 9, završeno)
+  ├── Fix Engine       — app/gui/fix_center/ (Faza 13)
+  └── Recommendation Engine — dio Decision Engine-a
+```
+
+**ScanSession koordinator** (Scanner Engine centralizacija) uvodi se tek u
+Fazi 11 (Dashboard v2) kada Dashboard zahtijeva dijeljeno scan stanje između
+stranica. Ranije uvođenje bi bio prematurni abstraction layer — nema ponavljanja
+koje bi opravdalo apstrakciju dok sve stranice rade nezavisni scan.
+
+**Pravilo:** Ne dodavati Engine apstakcijski sloj dok se obrazac ne stabilizuje
+u barem 3 mjesta gdje isti orchestration kod postoji. Jedini izuzetak je
+Decision Engine koji je eksplicitno planiran od Faze 1.
+
+> Report: [agent_reports/2026-06-30_decision-engine.md](../agent_reports/2026-06-30_decision-engine.md)
+
 ## Agent workflow: GitNexus handoff format + project_rooms (lagana forma)
 
 > Report: [agent_reports/2026-06-29_agent-workflow-claude-md.md](../agent_reports/2026-06-29_agent-workflow-claude-md.md)

@@ -207,12 +207,15 @@ class ReportsPage(QWidget):
         )
 
     def _render(self, report: ScanReport) -> str:
+        from app.core.decision_engine import DecisionEngine
+        issues = DecisionEngine().analyze(report)
+
         fmt = self._selected_format()
         if fmt == "JSON":
-            return write_json(report)
+            return write_json(report, issues)
         if fmt == "HTML":
-            return write_html(report)
-        return write_markdown(report)
+            return write_html(report, issues)
+        return write_markdown(report, issues)
 
     def _save_file(self) -> None:
         fmt = self._selected_format()
