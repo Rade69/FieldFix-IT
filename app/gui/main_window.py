@@ -34,7 +34,7 @@ class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("FieldFix IT — Windows IT Diagnostics & Repair Tool")
-        self.setMinimumSize(900, 600)
+        self.setMinimumSize(1120, 700)
         self._fit_to_screen()
 
         self.pages = QStackedWidget()
@@ -60,11 +60,20 @@ class MainWindow(QMainWindow):
         body_layout.addWidget(self.sidebar)
         body_layout.addWidget(self.pages, stretch=1)
 
+        self._top_bar = TopBar()
+        _instances[0].scan_completed.connect(
+            lambda r: self._top_bar.update_network(r.report.network)
+        )
+        _settings_idx = next(i for i, (n, _) in enumerate(_PAGES) if n == "Settings")
+        self._top_bar.open_settings.connect(
+            lambda: self.pages.setCurrentIndex(_settings_idx)
+        )
+
         central = QWidget()
         outer_layout = QVBoxLayout(central)
         outer_layout.setContentsMargins(0, 0, 0, 0)
         outer_layout.setSpacing(0)
-        outer_layout.addWidget(TopBar())
+        outer_layout.addWidget(self._top_bar)
         outer_layout.addWidget(body, stretch=1)
         self.setCentralWidget(central)
 
@@ -74,8 +83,8 @@ class MainWindow(QMainWindow):
     def _fit_to_screen(self) -> None:
         """Size and center the window within the available screen area (excludes taskbar)."""
         screen = QApplication.primaryScreen().availableGeometry()
-        w = min(1280, int(screen.width() * 0.95))
-        h = min(800, int(screen.height() * 0.92))
+        w = min(1360, int(screen.width() * 0.96))
+        h = min(860, int(screen.height() * 0.94))
         self.resize(w, h)
         self.move(
             screen.x() + (screen.width() - w) // 2,
