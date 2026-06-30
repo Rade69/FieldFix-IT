@@ -18,6 +18,32 @@ def is_admin() -> bool:
         return False
 
 
+def restart_as_admin() -> None:
+    """Relaunch this process with Administrator privileges via UAC.
+
+    If user accepts the UAC prompt the current (non-elevated) process exits
+    and a new elevated instance starts.  If the user cancels the UAC dialog
+    the function returns without doing anything.
+
+    Works for both PyInstaller exe (sys.frozen) and dev-mode python script.
+    """
+    import os
+    import sys
+
+    if getattr(sys, "frozen", False):
+        # PyInstaller bundle: the exe is sys.executable
+        prog, args = sys.executable, ""
+    else:
+        # Dev mode: python interpreter + script path
+        prog = sys.executable
+        args = f'"{sys.argv[0]}"'
+
+    ret = ctypes.windll.shell32.ShellExecuteW(None, "runas", prog, args or None, None, 1)
+    if int(ret) > 32:
+        # UAC accepted — elevated instance is starting; exit this one cleanly
+        os._exit(0)
+
+
 class PowerShellRunner:
     """Executes read-only PowerShell commands and returns CommandResult objects.
 

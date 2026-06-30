@@ -23,7 +23,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.core.powershell_runner import PowerShellRunner, is_admin
+from app.core.powershell_runner import PowerShellRunner, is_admin, restart_as_admin
 from app.core.risk_level import RiskLevel
 from app.gui.widgets.risk_badge import RiskBadge
 
@@ -198,10 +198,10 @@ class _FixActionCard(QFrame):
         a = self._action
         confirmed = QMessageBox.question(
             self,
-            "Confirm Fix",
+            "Potvrdi akciju",
             f"<b>{a.title}</b><br><br>"
-            f"This will change: <i>{a.what_it_changes}</i><br><br>"
-            "Proceed?",
+            f"Šta se mijenja: <i>{a.what_it_changes}</i><br><br>"
+            "Nastaviti?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
             QMessageBox.StandardButton.Cancel,
         )
@@ -209,21 +209,27 @@ class _FixActionCard(QFrame):
             return
 
         self._apply_btn.setEnabled(False)
-        self._apply_btn.setText("Applying…")
+        self._apply_btn.setText("Primjenjujem…")
 
-        result = self._runner.run(a.ps_command, timeout=15)
+        from PySide6.QtWidgets import QApplication
+        QApplication.processEvents()
+
+        result = self._runner.run(a.ps_command, timeout=20)
 
         if result.succeeded:
-            self._result_label.setText("✓ Applied successfully")
+            self._result_label.setText("✓ Uspješno primijenjeno")
             self._result_label.setStyleSheet("font-size: 11px; color: #3fb950; font-weight: bold;")
             self._skip_btn.setEnabled(False)
-            self._apply_btn.setText("▶ Applied")
+            self._apply_btn.setText("✓ Primijenjeno")
+            self._apply_btn.setStyleSheet(
+                "QPushButton { background: #1a4731; color: #3fb950; border-radius: 4px; padding: 4px 10px; }"
+            )
         else:
-            err = (result.stderr or "Unknown error").strip()[:120]
-            self._result_label.setText(f"✕ Failed: {err}")
+            err = (result.stderr or "Nepoznata greška").strip()[:160]
+            self._result_label.setText(f"✕ Greška: {err}")
             self._result_label.setStyleSheet("font-size: 11px; color: #f85149;")
             self._apply_btn.setEnabled(True)
-            self._apply_btn.setText("▶ Retry")
+            self._apply_btn.setText("▶ Pokušaj ponovo")
 
         self._result_label.show()
 
@@ -274,22 +280,36 @@ class FixCenterPage(QWidget):
         h_row.addWidget(admin_badge)
         outer.addWidget(header)
 
-        # ── Admin warning banner (if not admin) ─────────────────────────────
+        # ── Admin elevation banner (if not admin) ────────────────────────────
         if not self._is_admin:
             banner = QFrame()
             banner.setStyleSheet(
-                "QFrame { background: #2d2209; border-left: 3px solid #d29922; "
-                "padding: 4px 0; margin: 0; }"
+                "QFrame { background: #2d2209; border-left: 3px solid #d29922; margin: 0; }"
             )
             b_layout = QHBoxLayout(banner)
-            b_layout.setContentsMargins(16, 8, 16, 8)
+            b_layout.setContentsMargins(16, 10, 16, 10)
+            b_layout.setSpacing(12)
+
             b_msg = QLabel(
-                "⚠  Running without administrator privileges — Apply buttons are disabled.  "
-                "Right-click the app shortcut and choose <b>Run as administrator</b> to apply fixes."
+                "⚠  Pokrenuto bez administratorskih privilegija — Apply dugmad su isključena."
             )
             b_msg.setStyleSheet("color: #d29922;")
             b_msg.setWordWrap(True)
-            b_layout.addWidget(b_msg)
+            b_layout.addWidget(b_msg, stretch=1)
+
+            restart_btn = QPushButton("🛡  Restart as Administrator")
+            restart_btn.setFixedWidth(210)
+            restart_btn.setStyleSheet(
+                "QPushButton { background: #b45309; color: white; border: none;"
+                " border-radius: 5px; padding: 6px 14px; font-weight: 600; }"
+                "QPushButton:hover { background: #d97706; }"
+            )
+            restart_btn.setToolTip(
+                "Zatvori aplikaciju i ponovo pokreni sa administratorskim privilegijama (UAC prompt)."
+            )
+            restart_btn.clicked.connect(restart_as_admin)
+            b_layout.addWidget(restart_btn)
+
             outer.addWidget(banner)
 
         # ── Scrollable action list ──────────────────────────────────────────
