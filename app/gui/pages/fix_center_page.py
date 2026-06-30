@@ -213,7 +213,7 @@ class _FixActionCard(QFrame):
 
         result = self._runner.run(a.ps_command, timeout=15)
 
-        if result.success:
+        if result.succeeded:
             self._result_label.setText("✓ Applied successfully")
             self._result_label.setStyleSheet("font-size: 11px; color: #3fb950; font-weight: bold;")
             self._skip_btn.setEnabled(False)
