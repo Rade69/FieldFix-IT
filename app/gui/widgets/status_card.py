@@ -2,7 +2,7 @@ from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout
 
-from app.gui.icons import UI_ICONS
+from app.gui.icons import STATUS_CARD_ICONS
 
 _COLORS = {
     "ok":       "#00d26a",
@@ -19,13 +19,13 @@ _DETAIL_ICON = {
 }
 
 _ICON_BG = {
-    "Network":   ("#0d3654", "#155f90"),
-    "SMB":       ("#1e1254", "#3b2ba0"),
+    "Network":       ("#0d3654", "#155f90"),
+    "SMB":           ("#1e1254", "#3b2ba0"),
     "Sharing / SMB": ("#1e1254", "#3b2ba0"),
-    "Firewall":  ("#3d2000", "#9e5500"),
-    "Services":  ("#0d3654", "#155f90"),
-    "Printers":  ("#2d1254", "#7b1fa2"),
-    "Issues":    ("#3d0d0d", "#9e2222"),
+    "Firewall":      ("#3d2000", "#9e5500"),
+    "Services":      ("#0d3654", "#155f90"),
+    "Printers":      ("#2d1254", "#7b1fa2"),
+    "Issues":        ("#3d0d0d", "#9e2222"),
 }
 
 
@@ -50,13 +50,13 @@ class StatusCard(QFrame):
 
         # Icon circle
         self._icon_label = QLabel()
-        self._icon_label.setFixedSize(48, 48)
-        icon_path = UI_ICONS.get(title)
+        self._icon_label.setFixedSize(54, 54)
+        icon_path = STATUS_CARD_ICONS.get(title)
         if icon_path:
-            self._icon_label.setPixmap(QIcon(str(icon_path)).pixmap(QSize(26, 26)))
+            self._icon_label.setPixmap(QIcon(str(icon_path)).pixmap(QSize(38, 38)))
         bg, border = _ICON_BG.get(title, ("#0d3654", "#155f90"))
         self._icon_label.setStyleSheet(
-            f"background-color: {bg}; border: 1px solid {border}; border-radius: 24px;"
+            f"background-color: {bg}; border: 1px solid {border}; border-radius: 27px;"
         )
         self._icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         outer.addWidget(self._icon_label)
