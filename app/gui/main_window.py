@@ -3,6 +3,7 @@ from PySide6.QtWidgets import QApplication, QHBoxLayout, QMainWindow, QStackedWi
 from app.gui.dashboard import DashboardPage
 from app.gui.pages.about_page import AboutPage
 from app.gui.pages.firewall_page import FirewallPage
+from app.gui.pages.fix_center_page import FixCenterPage
 from app.gui.pages.network_page import NetworkPage
 from app.gui.pages.printers_page import PrintersPage
 from app.gui.pages.reports_page import ReportsPage
@@ -22,6 +23,7 @@ _PAGES = [
     ("Services", ServicesPage),
     ("Printers", PrintersPage),
     ("Topology", TopologyPage),
+    ("Fix Center", FixCenterPage),
     ("Reports", ReportsPage),
     ("Settings", SettingsPage),
     ("About", AboutPage),
@@ -36,11 +38,20 @@ class MainWindow(QMainWindow):
         self._fit_to_screen()
 
         self.pages = QStackedWidget()
+        _instances = []
         for _, page_cls in _PAGES:
-            self.pages.addWidget(page_cls())
+            inst = page_cls()
+            self.pages.addWidget(inst)
+            _instances.append(inst)
 
         self.sidebar = Sidebar([name for name, _ in _PAGES])
         self.sidebar.page_selected.connect(self.pages.setCurrentIndex)
+
+        # Wire Dashboard "Open Fix Center" → navigate to Fix Center page
+        _fix_idx = next(i for i, (n, _) in enumerate(_PAGES) if n == "Fix Center")
+        _instances[0].open_fix_center.connect(
+            lambda: self.pages.setCurrentIndex(_fix_idx)
+        )
 
         body = QWidget()
         body_layout = QHBoxLayout(body)

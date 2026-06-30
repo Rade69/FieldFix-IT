@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QApplication,
     QFrame,
@@ -86,6 +87,8 @@ def _build_timeline_events(result: ScanResult) -> list[TimelineEvent]:
 class DashboardPage(QWidget):
     """Dashboard with real scan data from Faza 11 onwards."""
 
+    open_fix_center = Signal()
+
     def __init__(self) -> None:
         super().__init__()
         self._runner = PowerShellRunner()
@@ -146,6 +149,7 @@ class DashboardPage(QWidget):
         issues_col.setSpacing(8)
         self._issues_widget = IssuesRecommendationsWidget()
         self._quick_actions_widget = QuickActionsWidget()
+        self._quick_actions_widget.open_fix_center.connect(self.open_fix_center)
         issues_col.addWidget(self._issues_widget)
         issues_col.addWidget(self._quick_actions_widget)
         info_row.addLayout(issues_col)

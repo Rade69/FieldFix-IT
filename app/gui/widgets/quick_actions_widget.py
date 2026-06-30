@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
 
 from app.core.issue import Issue
@@ -35,6 +36,8 @@ class QuickActionsWidget(QFrame):
     Dashboard must never execute a fix directly — see docs/architecture_notes.md.
     """
 
+    open_fix_center = Signal()
+
     def __init__(self) -> None:
         super().__init__()
         self.setObjectName("PanelCard")
@@ -50,6 +53,7 @@ class QuickActionsWidget(QFrame):
         self._placeholder()
 
         self._fix_center_btn = QPushButton("🔧 Open Fix Center (Detailed Fixes)")
+        self._fix_center_btn.clicked.connect(self.open_fix_center)
         layout.addWidget(self._fix_center_btn)
 
     def _placeholder(self) -> None:
