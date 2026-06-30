@@ -135,7 +135,7 @@ Dodati kasnije ako zatreba, ne fabrikovati skriptu bez potrebe.
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **FieldFix IT** (862 symbols, 1317 relationships, 7 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **FieldFix-IT** (1106 symbols, 1780 relationships, 12 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -158,10 +158,10 @@ This project is indexed by GitNexus as **FieldFix IT** (862 symbols, 1317 relati
 
 | Resource | Use for |
 |----------|---------|
-| `gitnexus://repo/FieldFix IT/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/FieldFix IT/clusters` | All functional areas |
-| `gitnexus://repo/FieldFix IT/processes` | All execution flows |
-| `gitnexus://repo/FieldFix IT/process/{name}` | Step-by-step execution trace |
+| `gitnexus://repo/FieldFix-IT/context` | Codebase overview, check index freshness |
+| `gitnexus://repo/FieldFix-IT/clusters` | All functional areas |
+| `gitnexus://repo/FieldFix-IT/processes` | All execution flows |
+| `gitnexus://repo/FieldFix-IT/process/{name}` | Step-by-step execution trace |
 
 ## CLI
 
