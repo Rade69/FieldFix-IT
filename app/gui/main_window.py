@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QHBoxLayout, QMainWindow, QStackedWidget, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QApplication, QHBoxLayout, QMainWindow, QStackedWidget, QVBoxLayout, QWidget
 
 from app.gui.dashboard import DashboardPage
 from app.gui.pages.about_page import AboutPage
@@ -32,7 +32,8 @@ class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("FieldFix IT — Windows IT Diagnostics & Repair Tool")
-        self.resize(1280, 800)
+        self.setMinimumSize(900, 600)
+        self._fit_to_screen()
 
         self.pages = QStackedWidget()
         for _, page_cls in _PAGES:
@@ -58,3 +59,14 @@ class MainWindow(QMainWindow):
 
         # Scan Mode is always the default — Fix Mode is a manual, later opt-in (see docs/architecture_notes.md).
         self.statusBar().showMessage("Scan Mode: Read Only")
+
+    def _fit_to_screen(self) -> None:
+        """Size and center the window within the available screen area (excludes taskbar)."""
+        screen = QApplication.primaryScreen().availableGeometry()
+        w = min(1280, int(screen.width() * 0.95))
+        h = min(800, int(screen.height() * 0.92))
+        self.resize(w, h)
+        self.move(
+            screen.x() + (screen.width() - w) // 2,
+            screen.y() + (screen.height() - h) // 2,
+        )
