@@ -26,5 +26,11 @@ class StatusCard(QFrame):
         color = self._COLORS.get(status, self._COLORS["neutral"])
         value_label.setStyleSheet(f"font-size: 20px; font-weight: bold; color: {color};")
 
+        self._value_label = value_label
         layout.addWidget(title_label)
         layout.addWidget(value_label)
+
+    def update(self, value: str, status: str) -> None:
+        color = self._COLORS.get(status, self._COLORS["neutral"])
+        self._value_label.setText(value)
+        self._value_label.setStyleSheet(f"font-size: 20px; font-weight: bold; color: {color};")
