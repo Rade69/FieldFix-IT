@@ -4,55 +4,106 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout
 
 from app.gui.icons import UI_ICONS
 
+_COLORS = {
+    "ok":       "#00d26a",
+    "warning":  "#f5b301",
+    "critical": "#ff4d4f",
+    "neutral":  "#9aa4b2",
+}
+
+_DETAIL_ICON = {
+    "ok":       ("✓", "#00d26a"),
+    "warning":  ("⚠", "#f5b301"),
+    "critical": ("✕", "#ff4d4f"),
+    "neutral":  ("—", "#9aa4b2"),
+}
+
+_ICON_BG = {
+    "Network":   ("#0d3654", "#155f90"),
+    "SMB":       ("#1e1254", "#3b2ba0"),
+    "Sharing / SMB": ("#1e1254", "#3b2ba0"),
+    "Firewall":  ("#3d2000", "#9e5500"),
+    "Services":  ("#0d3654", "#155f90"),
+    "Printers":  ("#2d1254", "#7b1fa2"),
+    "Issues":    ("#3d0d0d", "#9e2222"),
+}
+
 
 class StatusCard(QFrame):
-    """Dashboard summary tile. Displays dummy/static values in this phase — no live scan data yet."""
+    """Dashboard summary tile — icon, status value, detail line."""
 
-    _COLORS = {
-        "ok": "#00d26a",
-        "warning": "#f5b301",
-        "critical": "#ff4d4f",
-        "neutral": "#9aa4b2",
-    }
-
-    def __init__(self, title: str, value: str, status: str = "neutral") -> None:
+    def __init__(
+        self,
+        title: str,
+        value: str,
+        status: str = "neutral",
+        detail: str = "",
+    ) -> None:
         super().__init__()
         self.setObjectName("StatusCard")
         self.setFrameShape(QFrame.Shape.StyledPanel)
+        self.setMinimumWidth(140)
 
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(14, 12, 14, 12)
-        layout.setSpacing(12)
+        outer = QHBoxLayout(self)
+        outer.setContentsMargins(14, 12, 14, 12)
+        outer.setSpacing(12)
 
+        # Icon circle
         self._icon_label = QLabel()
-        self._icon_label.setFixedSize(42, 42)
+        self._icon_label.setFixedSize(48, 48)
         icon_path = UI_ICONS.get(title)
         if icon_path:
-            self._icon_label.setPixmap(QIcon(str(icon_path)).pixmap(QSize(24, 24)))
+            self._icon_label.setPixmap(QIcon(str(icon_path)).pixmap(QSize(26, 26)))
+        bg, border = _ICON_BG.get(title, ("#0d3654", "#155f90"))
         self._icon_label.setStyleSheet(
-            "background-color: #0d3654; border: 1px solid #155f90; "
-            "border-radius: 21px;"
+            f"background-color: {bg}; border: 1px solid {border}; border-radius: 24px;"
         )
         self._icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(self._icon_label)
+        outer.addWidget(self._icon_label)
 
+        # Text column
         text_col = QVBoxLayout()
         text_col.setSpacing(2)
+        text_col.setContentsMargins(0, 0, 0, 0)
 
-        title_label = QLabel(title)
-        title_label.setStyleSheet("color: #f0f6fc; font-size: 12px; font-weight: 700;")
+        title_lbl = QLabel(title)
+        title_lbl.setStyleSheet("color: #9aa4b2; font-size: 11px; font-weight: 600;")
+        text_col.addWidget(title_lbl)
 
-        value_label = QLabel(value)
-        color = self._COLORS.get(status, self._COLORS["neutral"])
-        value_label.setStyleSheet(f"font-size: 22px; font-weight: 800; color: {color};")
+        self._value_label = QLabel(value)
+        color = _COLORS.get(status, _COLORS["neutral"])
+        self._value_label.setStyleSheet(
+            f"font-size: 20px; font-weight: 800; color: {color};"
+        )
+        text_col.addWidget(self._value_label)
 
-        self._value_label = value_label
-        text_col.addWidget(title_label)
-        text_col.addWidget(value_label)
-        layout.addLayout(text_col)
-        layout.addStretch(1)
+        # Detail row: small icon + text
+        self._detail_row = QHBoxLayout()
+        self._detail_row.setSpacing(4)
+        self._detail_icon = QLabel()
+        self._detail_icon.setStyleSheet("font-size: 11px;")
+        self._detail_text = QLabel()
+        self._detail_text.setStyleSheet("color: #9aa4b2; font-size: 11px;")
+        self._detail_row.addWidget(self._detail_icon)
+        self._detail_row.addWidget(self._detail_text)
+        self._detail_row.addStretch(1)
+        text_col.addLayout(self._detail_row)
 
-    def update(self, value: str, status: str) -> None:
-        color = self._COLORS.get(status, self._COLORS["neutral"])
+        outer.addLayout(text_col)
+        outer.addStretch(1)
+
+        self._set_detail(status, detail)
+
+    def _set_detail(self, status: str, detail: str) -> None:
+        icon, color = _DETAIL_ICON.get(status, _DETAIL_ICON["neutral"])
+        self._detail_icon.setText(icon)
+        self._detail_icon.setStyleSheet(f"font-size: 11px; color: {color};")
+        self._detail_text.setText(detail)
+
+    def update(self, value: str, status: str, detail: str = "") -> None:
+        color = _COLORS.get(status, _COLORS["neutral"])
         self._value_label.setText(value)
-        self._value_label.setStyleSheet(f"font-size: 22px; font-weight: 800; color: {color};")
+        self._value_label.setStyleSheet(
+            f"font-size: 20px; font-weight: 800; color: {color};"
+        )
+        self._set_detail(status, detail)

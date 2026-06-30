@@ -43,6 +43,47 @@ QFrame#StatusCard, QFrame#PanelCard, QFrame#HeaderBar {
     border-radius: 8px;
 }
 
+QFrame#StatusCard:hover {
+    border: 1px solid #2d5480;
+    background-color: #101f2e;
+}
+
+QScrollBar:vertical {
+    background-color: #081522;
+    width: 8px;
+    border-radius: 4px;
+}
+
+QScrollBar::handle:vertical {
+    background-color: #1f3344;
+    border-radius: 4px;
+    min-height: 24px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background-color: #2d5480;
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0px;
+}
+
+QScrollBar:horizontal {
+    background-color: #081522;
+    height: 8px;
+    border-radius: 4px;
+}
+
+QScrollBar::handle:horizontal {
+    background-color: #1f3344;
+    border-radius: 4px;
+    min-width: 24px;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background-color: #2d5480;
+}
+
 QFrame#TopBar {
     background-color: #06111b;
     border: none;

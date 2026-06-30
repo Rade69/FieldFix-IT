@@ -103,14 +103,14 @@ def _os_display(info: _SysInfo) -> str:
 
 
 def _net_html(name: str, category: str) -> str:
-    color = _CATEGORY_COLOR.get(category, "#9aa4b2")
+    cat_color = _CATEGORY_COLOR.get(category, "#9aa4b2")
     if not name and not category:
         return "Network: —"
     parts = ["Network:"]
     if name:
-        parts.append(name)
+        parts.append(f'<span style="color:#e3b341;">{name}</span>')
     if category:
-        parts.append(f'<span style="color:{color};">({category})</span>')
+        parts.append(f'<span style="color:{cat_color};">({category})</span>')
     return " ".join(parts)
 
 
@@ -162,7 +162,9 @@ class TopBar(QFrame):
         # Left block: computer name + OS / user / uptime
         left_col = QVBoxLayout()
         left_col.setSpacing(2)
-        left_col.addWidget(_rich(f"Computer: <b>{computer}</b>"))
+        left_col.addWidget(_rich(
+            f"Computer: <span style='color:#58a6ff; font-weight:bold;'>{computer}</span>"
+        ))
         self._detail_label = _rich(
             f"{_os_display(info)} &nbsp;&nbsp; User: {user}"
             f" &nbsp;&nbsp; Uptime: {_format_uptime(info.uptime_seconds)}",
@@ -175,7 +177,9 @@ class TopBar(QFrame):
         # Right block: IP + network
         right_col = QVBoxLayout()
         right_col.setSpacing(2)
-        self._ip_label = _rich(f"IP: <b>{info.ip_address or '—'}</b>")
+        self._ip_label = _rich(
+            f"IP: <span style='color:#58a6ff; font-weight:bold;'>{info.ip_address or '—'}</span>"
+        )
         right_col.addWidget(self._ip_label)
         self._net_label = _rich(
             _net_html(info.network_name, info.network_category), muted=True
@@ -217,7 +221,9 @@ class TopBar(QFrame):
             None,
         )
         if ipv4:
-            self._ip_label.setText(f"IP: <b>{ipv4}</b>")
+            self._ip_label.setText(
+                f"IP: <span style='color:#58a6ff; font-weight:bold;'>{ipv4}</span>"
+            )
         if network.profiles:
             p = network.profiles[0]
             self._net_label.setText(_net_html(p.name, p.category))

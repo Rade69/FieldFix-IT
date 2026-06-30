@@ -34,6 +34,27 @@ def _module_status(issues, module: str) -> str:
     return "critical" if max(i.severity for i in relevant) >= RiskLevel.HIGH else "warning"
 
 
+def _smb_detail(report) -> str:
+    smb = report.smb
+    if not smb:
+        return "Not scanned"
+    if smb.server_config:
+        if smb.server_config.smb1_enabled is True:
+            return "SMB1 active (risk)"
+        if smb.server_config.smb1_enabled is False:
+            return "SMB v2/v3 enabled"
+    return "SMB config scanned"
+
+
+def _services_detail(report) -> str:
+    svc = report.services
+    if not svc:
+        return "Not scanned"
+    total = len(svc.services)
+    running = sum(1 for s in svc.services if s.status == "Running")
+    return f"{running} / {total} running"
+
+
 def _build_timeline_events(result: ScanResult) -> list[TimelineEvent]:
     ts = result.scanned_at[11:19]  # HH:MM:SS
     events: list[TimelineEvent] = []
@@ -121,17 +142,18 @@ class DashboardPage(QWidget):
 
         outer.addWidget(header)
 
-        # ── Status cards ────────────────────────────────────────────────────
+        # ── Status cards ── order matches mockup: Network/SMB/Firewall/Services/Printers/Issues
         cards_row = QHBoxLayout()
-        self._card_network  = StatusCard("Network",   "—",  "neutral")
-        self._card_smb      = StatusCard("SMB",       "—",  "neutral")
-        self._card_services = StatusCard("Services",  "—",  "neutral")
-        self._card_printers = StatusCard("Printers",  "—",  "neutral")
-        self._card_issues   = StatusCard("Issues",    "0",  "ok")
-        self._card_firewall = StatusCard("Firewall",  "—",  "neutral")
+        cards_row.setSpacing(6)
+        self._card_network  = StatusCard("Network",       "—", "neutral")
+        self._card_smb      = StatusCard("Sharing / SMB", "—", "neutral")
+        self._card_firewall = StatusCard("Firewall",      "—", "neutral")
+        self._card_services = StatusCard("Services",      "—", "neutral")
+        self._card_printers = StatusCard("Printers",      "—", "neutral")
+        self._card_issues   = StatusCard("Issues",        "0", "ok")
         for card in (
-            self._card_network, self._card_smb, self._card_services,
-            self._card_printers, self._card_issues, self._card_firewall,
+            self._card_network, self._card_smb, self._card_firewall,
+            self._card_services, self._card_printers, self._card_issues,
         ):
             cards_row.addWidget(card)
         outer.addLayout(cards_row)
@@ -191,32 +213,52 @@ class DashboardPage(QWidget):
         issues = result.issues
         report = result.report
 
-        # Status cards
+        # Status cards — with detail text matching mockup
+        net_status = _module_status(issues, "network")
+        net_profile = (report.network.profiles[0].category if report.network and
+                       report.network.profiles else "")
+        net_detail = f"{net_profile} network" if net_profile else "Network scanned"
         self._card_network.update(
-            "OK" if not any(i.related_module == "network" for i in issues) else
-            ("ERROR" if _module_status(issues, "network") == "critical" else "WARN"),
-            _module_status(issues, "network"),
+            "OK" if net_status == "ok" else ("ERROR" if net_status == "critical" else "WARN"),
+            net_status,
+            net_detail,
         )
+
+        smb_status = _module_status(issues, "smb")
+        smb_detail = _smb_detail(report)
         self._card_smb.update(
-            "OK" if _module_status(issues, "smb") == "ok" else
-            ("ERROR" if _module_status(issues, "smb") == "critical" else "WARN"),
-            _module_status(issues, "smb"),
+            "OK" if smb_status == "ok" else ("ERROR" if smb_status == "critical" else "WARN"),
+            smb_status,
+            smb_detail,
         )
+
+        # Firewall: not scanned separately in Dashboard run
+        fw_issues = [i for i in issues if i.related_module == "firewall"]
+        if fw_issues:
+            fw_status = "critical" if any(i.severity >= RiskLevel.HIGH for i in fw_issues) else "warning"
+            self._card_firewall.update("WARN", fw_status, f"{len(fw_issues)} issue(s) detected")
+        else:
+            self._card_firewall.update("—", "neutral", "Not scanned")
+
+        svc_status = _module_status(issues, "services")
+        svc_detail = _services_detail(report)
         self._card_services.update(
-            "OK" if _module_status(issues, "services") == "ok" else
-            ("ERROR" if _module_status(issues, "services") == "critical" else "WARN"),
-            _module_status(issues, "services"),
+            "OK" if svc_status == "ok" else ("ERROR" if svc_status == "critical" else "WARN"),
+            svc_status,
+            svc_detail,
         )
+
         printer_count = len(report.printers.printers) if report.printers else 0
-        self._card_printers.update(str(printer_count), "ok")
+        printer_detail = "Štampača pronađeno" if printer_count else "Nema štampača"
+        self._card_printers.update(str(printer_count), "ok" if printer_count else "neutral", printer_detail)
+
         issue_count = len(issues)
-        self._card_issues.update(
-            str(issue_count),
+        issue_status = (
             "critical" if any(i.severity >= RiskLevel.HIGH for i in issues)
-            else ("warning" if issues else "ok"),
+            else ("warning" if issues else "ok")
         )
-        # Firewall: not scanned in Dashboard run — stays neutral
-        self._card_firewall.update("—", "neutral")
+        issue_detail = "Za pregled" if issue_count else "Sve u redu"
+        self._card_issues.update(str(issue_count), issue_status, issue_detail)
 
         # Widgets
         self._sys_info_widget.update_data(report.network)
