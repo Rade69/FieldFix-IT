@@ -1,13 +1,14 @@
+from __future__ import annotations
+
+import re
+
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
 
-# Dummy nodes only — replaced by real ARP/ping discovery in Faza 12 (Topology v1).
-_DUMMY_NODES = [
-    {"icon": "🖥", "name": "NOVI", "ip": "192.168.100.55", "tag": "Ovaj računar", "tag_color": "#58a6ff"},
-    {"icon": "🌐", "name": "Router / Gateway", "ip": "192.168.100.1", "tag": "Aktivan", "tag_color": "#3fb950"},
-    {"icon": "🖥", "name": "RADOVAN", "ip": "192.168.100.155", "tag": "Online", "tag_color": "#3fb950"},
-    {"icon": "🖨", "name": "Canon iR1133iF", "ip": "192.168.100.50", "tag": "Štampač", "tag_color": "#a371f7"},
-]
+from app.modules.network.models import NetworkData
+from app.modules.printers.models import PrintersData
+
+_IP_RE = re.compile(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}")
 
 _LEGEND = [
     ("#3fb950", "Online"),
@@ -18,6 +19,65 @@ _LEGEND = [
 ]
 
 
+def _extract_ip(text: str) -> str | None:
+    m = _IP_RE.search(text)
+    return m.group(0) if m else None
+
+
+def _nodes_from_scan(
+    network: NetworkData, printers: PrintersData | None
+) -> list[dict]:
+    local_ips = {ip.ip_address for ip in network.ip_addresses if ip.ip_address}
+    local_ip = next(iter(local_ips), "")
+    gateway_ip = network.gateways[0].next_hop if network.gateways else ""
+    seen: set[str] = set(local_ips)
+    nodes: list[dict] = []
+
+    # This PC
+    nodes.append({
+        "icon": "🖥", "name": network.hostname or "This PC", "ip": local_ip,
+        "tag": "Ovaj računar", "tag_color": "#58a6ff",
+    })
+
+    # Gateway
+    if gateway_ip:
+        seen.add(gateway_ip)
+        ok = network.gateway_reachable
+        nodes.append({
+            "icon": "🌐", "name": "Router / Gateway", "ip": gateway_ip,
+            "tag": "Aktivan" if ok else ("Nedostupan" if ok is False else "Unknown"),
+            "tag_color": "#3fb950" if ok else ("#f85149" if ok is False else "#8b949e"),
+        })
+
+    # Network printers (detect IP from port_name)
+    if printers:
+        for p in printers.printers:
+            ip = _extract_ip(p.port_name) if p.port_name else None
+            if ip and ip not in seen:
+                seen.add(ip)
+                nodes.append({
+                    "icon": "🖨", "name": p.name, "ip": ip,
+                    "tag": "Štampač", "tag_color": "#a371f7",
+                })
+
+    # ARP entries (remaining reachable devices)
+    for entry in network.arp_entries:
+        if entry.ip_address in seen:
+            continue
+        if entry.state not in ("Reachable", "Stale"):
+            continue
+        seen.add(entry.ip_address)
+        nodes.append({
+            "icon": "🖥", "name": entry.ip_address, "ip": entry.ip_address,
+            "tag": "Online" if entry.state == "Reachable" else "Unknown",
+            "tag_color": "#3fb950" if entry.state == "Reachable" else "#8b949e",
+        })
+        if len(nodes) >= 8:
+            break
+
+    return nodes
+
+
 def _build_node(icon: str, name: str, ip: str, tag: str, tag_color: str) -> QFrame:
     frame = QFrame()
     frame.setObjectName("StatusCard")
@@ -25,22 +85,22 @@ def _build_node(icon: str, name: str, ip: str, tag: str, tag_color: str) -> QFra
     layout.setContentsMargins(12, 10, 12, 10)
 
     top_row = QHBoxLayout()
-    icon_label = QLabel(icon)
-    icon_label.setStyleSheet("font-size: 18px;")
-    name_label = QLabel(name)
-    name_label.setStyleSheet("font-weight: bold;")
-    top_row.addWidget(icon_label)
-    top_row.addWidget(name_label)
+    icon_lbl = QLabel(icon)
+    icon_lbl.setStyleSheet("font-size: 18px;")
+    name_lbl = QLabel(name)
+    name_lbl.setStyleSheet("font-weight: bold;")
+    top_row.addWidget(icon_lbl)
+    top_row.addWidget(name_lbl)
     top_row.addStretch(1)
     layout.addLayout(top_row)
 
-    ip_label = QLabel(ip)
-    ip_label.setStyleSheet("color: #9aa4b2;")
-    layout.addWidget(ip_label)
+    ip_lbl = QLabel(ip)
+    ip_lbl.setStyleSheet("color: #9aa4b2;")
+    layout.addWidget(ip_lbl)
 
-    tag_label = QLabel(tag)
-    tag_label.setStyleSheet(f"color: {tag_color}; font-weight: bold;")
-    layout.addWidget(tag_label)
+    tag_lbl = QLabel(tag)
+    tag_lbl.setStyleSheet(f"color: {tag_color}; font-weight: bold;")
+    layout.addWidget(tag_lbl)
 
     return frame
 
@@ -66,39 +126,74 @@ def _build_legend() -> QHBoxLayout:
     return row
 
 
+def _clear_layout(layout) -> None:
+    while layout.count():
+        item = layout.takeAt(0)
+        if w := item.widget():
+            w.deleteLater()
+        elif child := item.layout():
+            _clear_layout(child)
+
+
 class NetworkTopologyWidget(QFrame):
     """Compact topology panel embedded in the Dashboard.
 
-    Display-only with dummy nodes — Faza 12 (Topology v1) replaces _DUMMY_NODES
-    with real ARP/ping discovery results. "Refresh" / "Open Network Map" are
-    inert placeholders, same as the dashboard's other not-yet-wired buttons.
+    Shows placeholder until update_data() is called after a scan.
     """
 
     def __init__(self) -> None:
         super().__init__()
         self.setObjectName("PanelCard")
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 12, 16, 12)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(16, 12, 16, 12)
 
         header_row = QHBoxLayout()
         title = QLabel("Network Topology (detektovani uređaji na mreži)")
         title.setStyleSheet("font-weight: bold;")
         header_row.addWidget(title)
         header_row.addStretch(1)
-        refresh_label = QLabel("⟳ Refresh")
-        refresh_label.setStyleSheet("color: #58a6ff;")
-        header_row.addWidget(refresh_label)
-        layout.addLayout(header_row)
+        refresh_lbl = QLabel("⟳ Refresh")
+        refresh_lbl.setStyleSheet("color: #58a6ff;")
+        header_row.addWidget(refresh_lbl)
+        outer.addLayout(header_row)
 
-        nodes_row = QHBoxLayout()
-        for index, node in enumerate(_DUMMY_NODES):
-            nodes_row.addWidget(_build_node(**node))
-            if index < len(_DUMMY_NODES) - 1:
-                nodes_row.addWidget(_build_arrow())
-        layout.addLayout(nodes_row)
+        self._nodes_row = QHBoxLayout()
+        self._show_placeholder()
+        outer.addLayout(self._nodes_row)
 
         bottom_row = QHBoxLayout()
         bottom_row.addLayout(_build_legend())
-        open_map_button = QPushButton("Open Network Map")
-        bottom_row.addWidget(open_map_button)
-        layout.addLayout(bottom_row)
+        bottom_row.addWidget(QPushButton("Open Network Map"))
+        outer.addLayout(bottom_row)
+
+    def _show_placeholder(self) -> None:
+        lbl = QLabel("Pokrenite sken da vidite uređaje na mreži.")
+        lbl.setStyleSheet("color: #9aa4b2;")
+        self._nodes_row.addWidget(lbl)
+        self._nodes_row.addStretch(1)
+
+    def update_data(
+        self,
+        network: NetworkData | None,
+        printers: PrintersData | None = None,
+    ) -> None:
+        _clear_layout(self._nodes_row)
+
+        if network is None:
+            self._show_placeholder()
+            return
+
+        nodes = _nodes_from_scan(network, printers)
+
+        if not nodes:
+            lbl = QLabel("Nisu pronađeni uređaji na mreži.")
+            lbl.setStyleSheet("color: #9aa4b2;")
+            self._nodes_row.addWidget(lbl)
+            self._nodes_row.addStretch(1)
+            return
+
+        for i, node in enumerate(nodes):
+            self._nodes_row.addWidget(_build_node(**node))
+            if i < len(nodes) - 1:
+                self._nodes_row.addWidget(_build_arrow())
+        self._nodes_row.addStretch(1)

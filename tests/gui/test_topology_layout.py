@@ -121,4 +121,9 @@ def test_devices_evenly_spaced_y():
     positions = compute_positions(nodes, 800, 600)
     y_values = [positions[f"arp_192.168.1.{last}"][1] for last in (20, 30, 40)]
 
-    assert y_values == [150, 300, 450]
+    # 3 devices, _NODE_V_GAP=88, centered around canvas_h/2=300:
+    # start_y = 300 - 88 = 212; values = [212, 300, 388]
+    assert y_values[1] == 300  # middle device always at center
+    gap = y_values[1] - y_values[0]
+    assert gap == y_values[2] - y_values[1]  # equal spacing
+    assert gap == 88

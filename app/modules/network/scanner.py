@@ -25,9 +25,23 @@ def _as_list(data: object) -> list:
     return []
 
 
-def _format_speed(bps: int | None) -> str | None:
+def _parse_speed(raw: object) -> int | None:
+    """Convert PS Speed value to int bps. PS may return UInt64 as string."""
+    if raw is None:
+        return None
+    try:
+        return int(raw)
+    except (ValueError, TypeError):
+        return None
+
+
+def _format_speed(bps: object) -> str | None:
     if bps is None:
         return None
+    try:
+        bps = int(bps)  # PS may serialize UInt64 as string depending on version
+    except (ValueError, TypeError):
+        return str(bps) or None
     if bps >= 1_000_000_000:
         return f"{bps // 1_000_000_000} Gbps"
     if bps >= 1_000_000:
@@ -80,7 +94,7 @@ class NetworkScanner:
     def _get_adapters(self, errors: list[str]) -> list[AdapterInfo]:
         cmd = (
             "Get-NetAdapter | Where-Object {$_.Status -eq 'Up'} | "
-            "Select-Object Name, InterfaceDescription, Status, LinkSpeed, MacAddress | "
+            "Select-Object Name, InterfaceDescription, Status, Speed, MacAddress | "
             "ConvertTo-Json -Compress"
         )
         result = self._runner.run_json(cmd, timeout=15)
@@ -92,7 +106,7 @@ class NetworkScanner:
                 name=str(item.get("Name", "")),
                 description=str(item.get("InterfaceDescription", "")),
                 status=str(item.get("Status", "")),
-                link_speed_bps=item.get("LinkSpeed"),
+                link_speed_bps=_parse_speed(item.get("Speed")),
                 mac_address=item.get("MacAddress"),
             )
             for item in _as_list(result.parsed_json)

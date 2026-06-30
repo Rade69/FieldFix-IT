@@ -88,6 +88,7 @@ class DashboardPage(QWidget):
     """Dashboard with real scan data from Faza 11 onwards."""
 
     open_fix_center = Signal()
+    scan_completed = Signal(object)  # emits ScanResult after every successful scan
 
     def __init__(self) -> None:
         super().__init__()
@@ -156,8 +157,9 @@ class DashboardPage(QWidget):
 
         outer.addLayout(info_row)
 
-        # ── Topology (stays dummy until Faza 12) ────────────────────────────
-        outer.addWidget(NetworkTopologyWidget())
+        # ── Topology ────────────────────────────────────────────────────────
+        self._topology_widget = NetworkTopologyWidget()
+        outer.addWidget(self._topology_widget)
 
         # ── Timeline row ────────────────────────────────────────────────────
         timeline_row = QHBoxLayout()
@@ -222,6 +224,7 @@ class DashboardPage(QWidget):
         self._issues_widget.update_data(issues)
         self._quick_actions_widget.update_data(issues)
         self._timeline_widget.update_data(_build_timeline_events(result))
+        self._topology_widget.update_data(report.network, report.printers)
 
         ts = result.scanned_at.replace("T", " ")
         self._status_label.setText(f"Last scan: {ts}")
@@ -229,3 +232,4 @@ class DashboardPage(QWidget):
             "color: #f85149;" if any(i.severity >= RiskLevel.HIGH for i in issues)
             else ("color: #d29922;" if issues else "color: #3fb950;")
         )
+        self.scan_completed.emit(result)

@@ -1,5 +1,5 @@
 from PySide6.QtCore import QPointF, QRectF, Qt
-from PySide6.QtGui import QBrush, QColor, QFont, QPainter, QPen
+from PySide6.QtGui import QBrush, QColor, QFont, QPainter, QPen, QWheelEvent
 from PySide6.QtWidgets import (
     QFrame,
     QGraphicsEllipseItem,
@@ -27,10 +27,12 @@ _NODE_COLORS = {
 }
 
 _RADIUS = 32
+_NODE_V_GAP = 88   # vertical gap between device nodes
+_COL_W = 200       # horizontal distance between columns
 
 
 def build_nodes(network: NetworkData, printers: PrintersData) -> list[dict]:
-    """Builds topology node list from scan data."""
+    """Builds topology node list from scan data. IPv6 entries are excluded."""
     local_ips = {ip.ip_address for ip in network.ip_addresses if ip.ip_address}
     local_ip = next(iter(local_ips), "")
     gateway_ip = network.gateways[0].next_hop if network.gateways else ""
@@ -52,6 +54,8 @@ def build_nodes(network: NetworkData, printers: PrintersData) -> list[dict]:
 
     for entry in network.arp_entries:
         if not entry.ip_address:
+            continue
+        if ":" in entry.ip_address:  # skip IPv6 — multicast, link-local, etc.
             continue
         if entry.ip_address == gateway_ip or entry.ip_address in local_ips:
             continue
@@ -93,13 +97,9 @@ def compute_positions(
     printer_index = 0
 
     if device_nodes:
-        natural_gap = canvas_h / (len(device_nodes) + 1)
-        gap = max(70.0, natural_gap)
-        if natural_gap >= 70:
-            device_y = [gap * (i + 1) for i in range(len(device_nodes))]
-        else:
-            start_y = center_y - (gap * (len(device_nodes) - 1) / 2)
-            device_y = [start_y + gap * i for i in range(len(device_nodes))]
+        total_h = _NODE_V_GAP * (len(device_nodes) - 1)
+        start_y = center_y - total_h / 2
+        device_y = [start_y + _NODE_V_GAP * i for i in range(len(device_nodes))]
     else:
         device_y = []
 
@@ -110,15 +110,35 @@ def compute_positions(
         if node_type == "pc":
             positions[node_id] = (110, center_y)
         elif node_type == "gateway":
-            positions[node_id] = (310, center_y)
+            positions[node_id] = (110 + _COL_W, center_y)
         elif node_type == "device":
-            positions[node_id] = (510, device_y[device_index])
+            positions[node_id] = (110 + _COL_W * 2, device_y[device_index])
             device_index += 1
         elif node_type == "printer":
-            positions[node_id] = (110, center_y + 120 + printer_index * 80)
+            positions[node_id] = (110, center_y + 120 + printer_index * 88)
             printer_index += 1
 
     return positions
+
+
+class _TopologyView(QGraphicsView):
+    """QGraphicsView with mouse-wheel zoom and drag-to-pan."""
+
+    _ZOOM_IN = 1.15
+    _ZOOM_OUT = 1 / 1.15
+
+    def __init__(self, scene: QGraphicsScene) -> None:
+        super().__init__(scene)
+        self.setRenderHint(QPainter.RenderHint.Antialiasing)
+        self.setStyleSheet("background: #0d1117; border: none;")
+        self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
+        self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
+        self.setResizeAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
+        self.setMinimumHeight(420)
+
+    def wheelEvent(self, event: QWheelEvent) -> None:
+        factor = self._ZOOM_IN if event.angleDelta().y() > 0 else self._ZOOM_OUT
+        self.scale(factor, factor)
 
 
 class TopologyPage(QWidget):
@@ -148,6 +168,12 @@ class TopologyPage(QWidget):
         header_layout.addWidget(self._status_label)
         header_layout.addSpacing(12)
 
+        self._fit_btn = QPushButton("⊡ Fit")
+        self._fit_btn.setToolTip("Reset zoom and pan to show all devices")
+        self._fit_btn.clicked.connect(self._fit_view)
+        header_layout.addWidget(self._fit_btn)
+        header_layout.addSpacing(6)
+
         self._scan_btn = QPushButton("▶ Scan")
         self._scan_btn.clicked.connect(self._run_scan)
         header_layout.addWidget(self._scan_btn)
@@ -155,11 +181,7 @@ class TopologyPage(QWidget):
         outer.addWidget(header)
 
         self._scene = QGraphicsScene()
-        self._view = QGraphicsView(self._scene)
-        self._view.setRenderHint(QPainter.RenderHint.Antialiasing)
-        self._view.setStyleSheet("background: #0d1117; border: none;")
-        self._view.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
-        self._view.setMinimumHeight(420)
+        self._view = _TopologyView(self._scene)
         outer.addWidget(self._view, stretch=1)
 
         legend = QFrame()
@@ -179,7 +201,11 @@ class TopologyPage(QWidget):
             legend_layout.addWidget(dot)
             legend_layout.addWidget(text)
             legend_layout.addSpacing(16)
+
+        hint = QLabel("Scroll: zoom  ·  Drag: pan  ·  ⊡ Fit: reset view")
+        hint.setStyleSheet("color: #4b5566; font-size: 11px;")
         legend_layout.addStretch(1)
+        legend_layout.addWidget(hint)
         outer.addWidget(legend)
 
         self._draw_topology(NetworkData(), PrintersData())
@@ -192,23 +218,37 @@ class TopologyPage(QWidget):
         from PySide6.QtWidgets import QApplication
         QApplication.processEvents()
 
-        network = NetworkScanner(PowerShellRunner()).scan()
-        printers = PrintersScanner(PowerShellRunner()).scan()
+        runner = PowerShellRunner()
+        network = NetworkScanner(runner).scan()
+        printers = PrintersScanner(runner).scan()
 
+        nodes = build_nodes(network, printers)
         self._draw_topology(network, printers)
 
-        total = len(network.arp_entries)
+        device_count = sum(1 for n in nodes if n["node_type"] == "device")
         self._scan_btn.setEnabled(True)
-        self._status_label.setText(f"Done — {total} device(s) found")
+        self._status_label.setText(f"Done — {device_count} device(s) found")
         self._status_label.setStyleSheet("color: #3fb950;")
+
+    def _fit_view(self) -> None:
+        rect = self._scene.itemsBoundingRect()
+        if not rect.isEmpty():
+            self._view.fitInView(
+                rect.adjusted(-40, -40, 40, 40),
+                Qt.AspectRatioMode.KeepAspectRatio,
+            )
 
     def _draw_topology(self, network: NetworkData, printers: PrintersData) -> None:
         self._scene.clear()
-        canvas_w = max(760, self._view.viewport().width())
-        canvas_h = max(420, self._view.viewport().height())
-        self._scene.setSceneRect(0, 0, canvas_w, canvas_h)
 
         nodes = build_nodes(network, printers)
+        device_nodes = [n for n in nodes if n["node_type"] == "device"]
+
+        canvas_w = max(760, self._view.viewport().width())
+        canvas_h = max(500, (len(device_nodes) + 2) * _NODE_V_GAP,
+                       self._view.viewport().height())
+        self._scene.setSceneRect(0, 0, canvas_w, canvas_h)
+
         positions = compute_positions(nodes, canvas_w, canvas_h)
         node_by_id = {str(node["id"]): node for node in nodes}
 
@@ -218,7 +258,12 @@ class TopologyPage(QWidget):
         if "gw" in positions:
             for node in nodes:
                 if node.get("node_type") == "device":
-                    self._add_edge(self._scene, positions["gw"], positions[str(node["id"])], dashed=True)
+                    self._add_edge(
+                        self._scene,
+                        positions["gw"],
+                        positions[str(node["id"])],
+                        dashed=True,
+                    )
 
         for node in nodes:
             if node.get("node_type") == "printer" and "pc" in positions:
@@ -233,12 +278,18 @@ class TopologyPage(QWidget):
         for node_id, pos in positions.items():
             self._add_node(self._scene, pos, node_by_id[node_id])
 
-    def _add_node(self, scene: QGraphicsScene, pos: tuple[float, float], node_dict: dict) -> None:
+        self._fit_view()
+
+    def _add_node(
+        self, scene: QGraphicsScene, pos: tuple[float, float], node_dict: dict
+    ) -> None:
         x, y = pos
         node_type = str(node_dict.get("node_type", "device"))
         color = QColor(_NODE_COLORS.get(node_type, "#2e7d32"))
 
-        circle = QGraphicsEllipseItem(QRectF(x - _RADIUS, y - _RADIUS, _RADIUS * 2, _RADIUS * 2))
+        circle = QGraphicsEllipseItem(
+            QRectF(x - _RADIUS, y - _RADIUS, _RADIUS * 2, _RADIUS * 2)
+        )
         circle.setBrush(QBrush(color))
         circle.setPen(QPen(QColor("#ffffff"), 2))
         scene.addItem(circle)

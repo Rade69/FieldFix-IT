@@ -158,16 +158,18 @@ class NetworkPage(QWidget):
             ))
             self._results_layout.addWidget(frame)
 
-        # ARP table ───────────────────────────────────────────────────────────
-        if data.arp_entries:
-            shown = data.arp_entries[:25]
-            frame, layout = _panel(f"🗂 ARP Table ({len(data.arp_entries)} entries)")
-            for e in shown:
+        # ARP table — only real LAN devices (skip IPv6, multicast, broadcast, loopback)
+        real_arp = [
+            e for e in data.arp_entries
+            if e.mac_address
+            and ":" not in e.ip_address
+            and not e.ip_address.startswith(("224.", "239.", "255."))
+            and e.mac_address not in ("FF-FF-FF-FF-FF-FF",)
+        ]
+        if real_arp:
+            frame, layout = _panel(f"🗂 ARP Table — LAN devices ({len(real_arp)} entries)")
+            for e in real_arp:
                 layout.addLayout(_kv_row(e.ip_address, f"{e.mac_address}  |  {e.state}  |  {e.interface_alias}"))
-            if len(data.arp_entries) > 25:
-                more = QLabel(f"  … and {len(data.arp_entries) - 25} more entries")
-                more.setStyleSheet("color: #9aa4b2;")
-                layout.addWidget(more)
             self._results_layout.addWidget(frame)
 
         # Errors ──────────────────────────────────────────────────────────────

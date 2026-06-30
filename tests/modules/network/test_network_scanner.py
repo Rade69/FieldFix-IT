@@ -114,7 +114,7 @@ class TestAdapters:
         "Name": "Ethernet",
         "InterfaceDescription": "Intel NIC",
         "Status": "Up",
-        "LinkSpeed": 1_000_000_000,
+        "Speed": 1_000_000_000,
         "MacAddress": "AA-BB-CC-DD-EE-FF",
     }
 
