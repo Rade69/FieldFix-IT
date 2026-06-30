@@ -14,34 +14,6 @@ _SHIELD_COLOR = {
 }
 
 
-def _build_row(title: str, severity) -> QHBoxLayout:
-    row = QHBoxLayout()
-    row.setSpacing(8)
-
-    shield_color = _SHIELD_COLOR.get(severity, "#58a6ff")
-    shield = QLabel("🛡")
-    shield.setStyleSheet(f"color: {shield_color};")
-    shield.setFixedWidth(20)
-    row.addWidget(shield)
-
-    lbl = QLabel(title)
-    lbl.setWordWrap(False)
-    lbl.setStyleSheet("font-size: 12px;")
-    row.addWidget(lbl, stretch=1)
-
-    # "Review" navigates to Fix Center — never executes fix directly (architecture rule)
-    review_btn = QPushButton("Apply")
-    review_btn.setFixedWidth(60)
-    review_btn.setStyleSheet(
-        "QPushButton { background-color: #1a7f37; color: white; border: none;"
-        " border-radius: 5px; padding: 4px 10px; font-size: 11px; font-weight: 600; }"
-        "QPushButton:hover { background-color: #2ea043; }"
-    )
-    review_btn.setToolTip("Opens Fix Center for review before applying")
-    row.addWidget(review_btn)
-    return row
-
-
 def _clear_layout(layout) -> None:
     while layout.count():
         item = layout.takeAt(0)
@@ -52,9 +24,11 @@ def _clear_layout(layout) -> None:
 
 
 class QuickActionsWidget(QFrame):
-    """Quick Actions panel. Review buttons are inert until Fix Center (Faza 13).
+    """Quick Actions panel.
 
-    Dashboard must never execute a fix directly — see docs/architecture_notes.md.
+    Each 'Fix →' button navigates to Fix Center — never executes fix directly.
+    Architecture rule: dashboard must not apply any fix without explicit user
+    confirmation in Fix Center (see docs/architecture_notes.md).
     """
 
     open_fix_center = Signal()
@@ -87,6 +61,33 @@ class QuickActionsWidget(QFrame):
         lbl.setStyleSheet("color: #9aa4b2;")
         self._content.addWidget(lbl)
 
+    def _build_row(self, issue: Issue) -> QHBoxLayout:
+        row = QHBoxLayout()
+        row.setSpacing(8)
+
+        shield_color = _SHIELD_COLOR.get(issue.severity, "#58a6ff")
+        shield = QLabel("🛡")
+        shield.setStyleSheet(f"color: {shield_color};")
+        shield.setFixedWidth(20)
+        row.addWidget(shield)
+
+        lbl = QLabel(issue.title)
+        lbl.setWordWrap(False)
+        lbl.setStyleSheet("font-size: 12px;")
+        row.addWidget(lbl, stretch=1)
+
+        fix_btn = QPushButton("Fix →")
+        fix_btn.setFixedWidth(60)
+        fix_btn.setStyleSheet(
+            "QPushButton { background-color: #1a7f37; color: white; border: none;"
+            " border-radius: 5px; padding: 4px 10px; font-size: 11px; font-weight: 600; }"
+            "QPushButton:hover { background-color: #2ea043; }"
+        )
+        fix_btn.setToolTip("Otvori Fix Center za pregled i primjenu popravke")
+        fix_btn.clicked.connect(self.open_fix_center)
+        row.addWidget(fix_btn)
+        return row
+
     def update_data(self, issues: tuple[Issue, ...]) -> None:
         _clear_layout(self._content)
         if not issues:
@@ -94,5 +95,5 @@ class QuickActionsWidget(QFrame):
             lbl.setStyleSheet("color: #3fb950;")
             self._content.addWidget(lbl)
             return
-        for issue in issues[:4]:  # top 4 issues as review actions
-            self._content.addLayout(_build_row(issue.title, issue.severity))
+        for issue in issues[:4]:
+            self._content.addLayout(self._build_row(issue))

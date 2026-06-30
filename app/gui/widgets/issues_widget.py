@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
 
 _ROW_STYLE = (
     "QFrame#IssueRow { border-radius: 6px; padding: 2px; }"
@@ -65,6 +65,8 @@ def _clear_layout(layout) -> None:
 class IssuesRecommendationsWidget(QFrame):
     """Issues & Recommendations panel. Populated by update_data() after scan."""
 
+    open_fix_center = Signal()
+
     def __init__(self) -> None:
         super().__init__()
         self.setObjectName("PanelCard")
@@ -76,9 +78,16 @@ class IssuesRecommendationsWidget(QFrame):
         self._title_label.setStyleSheet("font-weight: bold; color: #3fb950;")
         header_row.addWidget(self._title_label)
         header_row.addStretch(1)
-        view_all = QLabel("View all")
-        view_all.setStyleSheet("color: #58a6ff;")
-        header_row.addWidget(view_all)
+        view_all_btn = QPushButton("View all")
+        view_all_btn.setFlat(True)
+        view_all_btn.setStyleSheet(
+            "QPushButton { color: #58a6ff; background: transparent; border: none;"
+            " padding: 0; font-size: 12px; }"
+            "QPushButton:hover { color: #79b8ff; text-decoration: underline; }"
+        )
+        view_all_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        view_all_btn.clicked.connect(self.open_fix_center)
+        header_row.addWidget(view_all_btn)
         layout.addLayout(header_row)
 
         self._content = QVBoxLayout()

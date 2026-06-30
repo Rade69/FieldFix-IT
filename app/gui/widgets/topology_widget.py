@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -152,6 +152,8 @@ class NetworkTopologyWidget(QFrame):
     Shows placeholder until update_data() is called after a scan.
     """
 
+    open_topology = Signal()
+
     def __init__(self) -> None:
         super().__init__()
         self.setObjectName("PanelCard")
@@ -164,9 +166,16 @@ class NetworkTopologyWidget(QFrame):
         title.setStyleSheet("font-weight: bold;")
         header_row.addWidget(title)
         header_row.addStretch(1)
-        refresh_lbl = QLabel("⟳ Refresh")
-        refresh_lbl.setStyleSheet("color: #58a6ff;")
-        header_row.addWidget(refresh_lbl)
+        refresh_btn = QPushButton("⟳ Refresh")
+        refresh_btn.setFlat(True)
+        refresh_btn.setStyleSheet(
+            "QPushButton { color: #58a6ff; background: transparent; border: none;"
+            " padding: 0; font-size: 12px; }"
+            "QPushButton:hover { color: #79b8ff; }"
+        )
+        refresh_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        refresh_btn.clicked.connect(self.open_topology)
+        header_row.addWidget(refresh_btn)
         outer.addLayout(header_row)
 
         # Scrollable nodes area
@@ -188,8 +197,14 @@ class NetworkTopologyWidget(QFrame):
 
         bottom_row = QHBoxLayout()
         bottom_row.addLayout(_build_legend())
-        open_map_btn = QPushButton("🗺 Open Network Map")
-        open_map_btn.setFixedWidth(160)
+        open_map_btn = QPushButton("🗺  Open Network Map")
+        open_map_btn.setStyleSheet(
+            "QPushButton { background-color: #0d2840; color: #58a6ff; border: 1px solid #1f4060;"
+            " border-radius: 6px; padding: 5px 14px; font-weight: 600; }"
+            "QPushButton:hover { background-color: #102a4a; border-color: #2d6da8; color: #79b8ff; }"
+        )
+        open_map_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        open_map_btn.clicked.connect(self.open_topology)
         bottom_row.addWidget(open_map_btn)
         outer.addLayout(bottom_row)
 

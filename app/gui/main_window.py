@@ -47,11 +47,16 @@ class MainWindow(QMainWindow):
         self.sidebar = Sidebar([name for name, _ in _PAGES])
         self.sidebar.page_selected.connect(self.pages.setCurrentIndex)
 
-        # Wire Dashboard "Open Fix Center" → navigate to Fix Center page
+        # Wire Dashboard signals → navigate to correct page (also sync sidebar)
+        def _go(idx: int) -> None:
+            self.pages.setCurrentIndex(idx)
+            self.sidebar.setCurrentRow(idx)
+
         _fix_idx = next(i for i, (n, _) in enumerate(_PAGES) if n == "Fix Center")
-        _instances[0].open_fix_center.connect(
-            lambda: self.pages.setCurrentIndex(_fix_idx)
-        )
+        _instances[0].open_fix_center.connect(lambda: _go(_fix_idx))
+
+        _topo_idx = next(i for i, (n, _) in enumerate(_PAGES) if n == "Topology")
+        _instances[0].open_topology.connect(lambda: _go(_topo_idx))
 
         body = QWidget()
         body_layout = QHBoxLayout(body)
