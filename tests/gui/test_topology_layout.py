@@ -106,7 +106,7 @@ def test_gateway_at_correct_x():
 
     positions = compute_positions(nodes, 800, 600)
 
-    assert positions["gw"][0] == 310
+    assert positions["gw"][0] == 330  # 110 + _COL_W(220)
     assert positions["gw"][1] == 300
 
 

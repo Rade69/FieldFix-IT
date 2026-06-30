@@ -1,8 +1,20 @@
+import math
+
 from PySide6.QtCore import QPointF, QRectF, Qt
-from PySide6.QtGui import QBrush, QColor, QFont, QPainter, QPen, QWheelEvent
+from PySide6.QtGui import (
+    QBrush,
+    QColor,
+    QFont,
+    QPainter,
+    QPainterPath,
+    QPen,
+    QPolygonF,
+    QWheelEvent,
+)
 from PySide6.QtWidgets import (
     QFrame,
-    QGraphicsEllipseItem,
+    QGraphicsPathItem,
+    QGraphicsPolygonItem,
     QGraphicsScene,
     QGraphicsTextItem,
     QGraphicsView,
@@ -19,17 +31,36 @@ from app.modules.network.scanner import NetworkScanner
 from app.modules.printers.models import PrintersData
 from app.modules.printers.scanner import PrintersScanner
 
+# ── node palette ──────────────────────────────────────────────────────────────
 _NODE_COLORS = {
-    "pc": "#1f6feb",
+    "pc":      "#1f6feb",
     "gateway": "#e65100",
-    "device": "#2e7d32",
+    "device":  "#2e7d32",
     "printer": "#7b1fa2",
 }
 
-_RADIUS = 32
-_NODE_V_GAP = 88   # vertical gap between device nodes
-_COL_W = 200       # horizontal distance between columns
+_NODE_BG = {
+    "pc":      "#071f3d",
+    "gateway": "#3d1500",
+    "device":  "#0d2e1a",
+    "printer": "#1e0938",
+}
 
+_NODE_ICONS = {
+    "pc":      "🖥",
+    "gateway": "🌐",
+    "device":  "💻",
+    "printer": "🖨",
+}
+
+_CARD_W  = 120
+_CARD_H  = 80
+_RADIUS  = 8       # rounded corner radius
+_NODE_V_GAP = 88
+_COL_W  = 220
+
+
+# ── pure layout logic (no Qt widgets — testable) ──────────────────────────────
 
 def build_nodes(network: NetworkData, printers: PrintersData) -> list[dict]:
     """Builds topology node list from scan data. IPv6 entries are excluded."""
@@ -37,7 +68,7 @@ def build_nodes(network: NetworkData, printers: PrintersData) -> list[dict]:
     local_ip = next(iter(local_ips), "")
     gateway_ip = network.gateways[0].next_hop if network.gateways else ""
 
-    nodes = [{
+    nodes: list[dict] = [{
         "id": "pc",
         "label": network.hostname or "This PC",
         "sublabel": local_ip,
@@ -55,7 +86,7 @@ def build_nodes(network: NetworkData, printers: PrintersData) -> list[dict]:
     for entry in network.arp_entries:
         if not entry.ip_address:
             continue
-        if ":" in entry.ip_address:  # skip IPv6 — multicast, link-local, etc.
+        if ":" in entry.ip_address:
             continue
         if entry.ip_address == gateway_ip or entry.ip_address in local_ips:
             continue
@@ -88,14 +119,12 @@ def compute_positions(
     canvas_w: int,
     canvas_h: int,
 ) -> dict[str, tuple[float, float]]:
-    """Returns {node_id: (x, y)} without Qt dependencies."""
+    """Returns {node_id: (cx, cy)} — center of each card."""
     del canvas_w
     center_y = canvas_h / 2
     positions: dict[str, tuple[float, float]] = {}
 
     device_nodes = [n for n in nodes if n.get("node_type") == "device"]
-    printer_index = 0
-
     if device_nodes:
         total_h = _NODE_V_GAP * (len(device_nodes) - 1)
         start_y = center_y - total_h / 2
@@ -104,6 +133,7 @@ def compute_positions(
         device_y = []
 
     device_index = 0
+    printer_index = 0
     for node in nodes:
         node_id = str(node.get("id", ""))
         node_type = node.get("node_type")
@@ -115,22 +145,128 @@ def compute_positions(
             positions[node_id] = (110 + _COL_W * 2, device_y[device_index])
             device_index += 1
         elif node_type == "printer":
-            positions[node_id] = (110, center_y + 120 + printer_index * 88)
+            positions[node_id] = (110, center_y + 120 + printer_index * _NODE_V_GAP)
             printer_index += 1
 
     return positions
 
 
-class _TopologyView(QGraphicsView):
-    """QGraphicsView with mouse-wheel zoom and drag-to-pan."""
+# ── graphics scene helpers ────────────────────────────────────────────────────
 
-    _ZOOM_IN = 1.15
+def _add_node(scene: QGraphicsScene, pos: tuple[float, float], node: dict) -> None:
+    cx, cy = pos
+    node_type = str(node.get("node_type", "device"))
+    border_color = QColor(_NODE_COLORS.get(node_type, "#2e7d32"))
+    bg_color     = QColor(_NODE_BG.get(node_type, "#0d2e1a"))
+    icon         = _NODE_ICONS.get(node_type, "●")
+
+    x = cx - _CARD_W / 2
+    y = cy - _CARD_H / 2
+
+    # Card background (rounded rect)
+    path = QPainterPath()
+    path.addRoundedRect(QRectF(x, y, _CARD_W, _CARD_H), _RADIUS, _RADIUS)
+    card = QGraphicsPathItem(path)
+    card.setBrush(QBrush(bg_color))
+    pen = QPen(border_color, 2)
+    card.setPen(pen)
+    card.setZValue(1)
+    scene.addItem(card)
+
+    # Icon (centered top)
+    icon_item = QGraphicsTextItem(icon)
+    icon_item.setFont(QFont("Segoe UI Emoji", 16))
+    icon_item.setDefaultTextColor(QColor("#f0f6fc"))
+    icon_w = icon_item.boundingRect().width()
+    icon_item.setPos(cx - icon_w / 2, y + 6)
+    icon_item.setZValue(2)
+    scene.addItem(icon_item)
+
+    # Label (name)
+    label_text = str(node.get("label", ""))
+    label_item = QGraphicsTextItem(label_text)
+    label_item.setFont(QFont("Segoe UI", 8, QFont.Weight.Bold))
+    label_item.setDefaultTextColor(QColor("#f0f6fc"))
+    label_item.setTextWidth(_CARD_W - 8)
+    label_item.setPos(x + 4, cy - 4)
+    label_item.setZValue(2)
+    scene.addItem(label_item)
+
+    # Sublabel (IP / mac)
+    sub_text = str(node.get("sublabel", ""))
+    if sub_text:
+        sub_item = QGraphicsTextItem(sub_text)
+        sub_item.setFont(QFont("Segoe UI", 7))
+        sub_item.setDefaultTextColor(QColor("#9aa4b2"))
+        sub_item.setTextWidth(_CARD_W - 8)
+        sub_item.setPos(x + 4, cy + 10)
+        sub_item.setZValue(2)
+        scene.addItem(sub_item)
+
+
+def _arrowhead(
+    scene: QGraphicsScene,
+    p1: tuple[float, float],
+    p2: tuple[float, float],
+    color: QColor,
+    size: float = 9,
+) -> None:
+    """Draw a small filled triangle arrowhead pointing from p1 toward p2."""
+    dx = p2[0] - p1[0]
+    dy = p2[1] - p1[1]
+    length = math.hypot(dx, dy)
+    if length < 1e-6:
+        return
+    ux, uy = dx / length, dy / length   # unit vector toward p2
+    px, py = -uy, ux                    # perpendicular
+
+    # Place tip at edge of destination card (pull back by half card)
+    pull = _CARD_W / 2 + 2
+    tip_x = p2[0] - ux * pull
+    tip_y = p2[1] - uy * pull
+
+    poly = QPolygonF([
+        QPointF(tip_x, tip_y),
+        QPointF(tip_x - ux * size + px * size * 0.45,
+                tip_y - uy * size + py * size * 0.45),
+        QPointF(tip_x - ux * size - px * size * 0.45,
+                tip_y - uy * size - py * size * 0.45),
+    ])
+    item = QGraphicsPolygonItem(poly)
+    item.setBrush(QBrush(color))
+    item.setPen(QPen(Qt.PenStyle.NoPen))
+    item.setZValue(1)
+    scene.addItem(item)
+
+
+def _add_edge(
+    scene: QGraphicsScene,
+    p1: tuple[float, float],
+    p2: tuple[float, float],
+    dashed: bool = False,
+    color: str = "#2d5480",
+    arrow: bool = True,
+) -> None:
+    qcolor = QColor(color)
+    pen = QPen(qcolor, 2)
+    if dashed:
+        pen.setStyle(Qt.PenStyle.DashLine)
+    pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+    scene.addLine(p1[0], p1[1], p2[0], p2[1], pen)
+    if arrow:
+        _arrowhead(scene, p1, p2, qcolor)
+
+
+# ── interactive view ──────────────────────────────────────────────────────────
+
+class _TopologyView(QGraphicsView):
+    _ZOOM_IN  = 1.15
     _ZOOM_OUT = 1 / 1.15
 
     def __init__(self, scene: QGraphicsScene) -> None:
         super().__init__(scene)
         self.setRenderHint(QPainter.RenderHint.Antialiasing)
-        self.setStyleSheet("background: #0d1117; border: none;")
+        self.setStyleSheet("background: #06111b; border: none;")
         self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
         self.setResizeAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
@@ -141,8 +277,30 @@ class _TopologyView(QGraphicsView):
         self.scale(factor, factor)
 
 
+# ── legend helpers ────────────────────────────────────────────────────────────
+
+def _legend_pill(label: str, color: str) -> QFrame:
+    pill = QFrame()
+    pill.setStyleSheet(
+        f"background-color: transparent; border: 1px solid {color};"
+        f" border-radius: 10px; padding: 2px 8px;"
+    )
+    row = QHBoxLayout(pill)
+    row.setContentsMargins(6, 2, 8, 2)
+    row.setSpacing(4)
+    dot = QLabel("●")
+    dot.setStyleSheet(f"color: {color}; border: none; font-size: 9px;")
+    text = QLabel(label)
+    text.setStyleSheet(f"color: {color}; border: none; font-size: 11px;")
+    row.addWidget(dot)
+    row.addWidget(text)
+    return pill
+
+
+# ── main page ─────────────────────────────────────────────────────────────────
+
 class TopologyPage(QWidget):
-    """Network topology page. Draws PC, gateway, ARP devices and network printers."""
+    """Network topology page — card-style nodes, arrowhead edges, pill legend."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -153,6 +311,7 @@ class TopologyPage(QWidget):
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(8)
 
+        # Header
         header = QFrame()
         header.setObjectName("PanelCard")
         header_layout = QHBoxLayout(header)
@@ -180,27 +339,24 @@ class TopologyPage(QWidget):
 
         outer.addWidget(header)
 
+        # Scene + view
         self._scene = QGraphicsScene()
         self._view = _TopologyView(self._scene)
         outer.addWidget(self._view, stretch=1)
 
+        # Legend (pill badges)
         legend = QFrame()
         legend.setObjectName("PanelCard")
         legend_layout = QHBoxLayout(legend)
         legend_layout.setContentsMargins(16, 8, 16, 8)
+        legend_layout.setSpacing(8)
         for node_type, label in [
-            ("pc", "This PC"),
+            ("pc",      "This PC"),
             ("gateway", "Gateway"),
-            ("device", "Device"),
+            ("device",  "Device"),
             ("printer", "Printer"),
         ]:
-            dot = QLabel("●")
-            dot.setStyleSheet(f"color: {_NODE_COLORS[node_type]};")
-            text = QLabel(label)
-            text.setStyleSheet("color: #9aa4b2;")
-            legend_layout.addWidget(dot)
-            legend_layout.addWidget(text)
-            legend_layout.addSpacing(16)
+            legend_layout.addWidget(_legend_pill(label, _NODE_COLORS[node_type]))
 
         hint = QLabel("Scroll: zoom  ·  Drag: pan  ·  ⊡ Fit: reset view")
         hint.setStyleSheet("color: #4b5566; font-size: 11px;")
@@ -244,79 +400,41 @@ class TopologyPage(QWidget):
         nodes = build_nodes(network, printers)
         device_nodes = [n for n in nodes if n["node_type"] == "device"]
 
-        canvas_w = max(760, self._view.viewport().width())
+        canvas_w = max(800, self._view.viewport().width())
         canvas_h = max(500, (len(device_nodes) + 2) * _NODE_V_GAP,
                        self._view.viewport().height())
         self._scene.setSceneRect(0, 0, canvas_w, canvas_h)
 
         positions = compute_positions(nodes, canvas_w, canvas_h)
-        node_by_id = {str(node["id"]): node for node in nodes}
+        node_by_id = {str(n["id"]): n for n in nodes}
 
+        # Edges first (behind cards)
         if "pc" in positions and "gw" in positions:
-            self._add_edge(self._scene, positions["pc"], positions["gw"])
+            _add_edge(self._scene, positions["pc"], positions["gw"], color="#2d5480")
 
         if "gw" in positions:
             for node in nodes:
                 if node.get("node_type") == "device":
-                    self._add_edge(
+                    _add_edge(
                         self._scene,
                         positions["gw"],
                         positions[str(node["id"])],
                         dashed=True,
+                        color="#1a3d26",
                     )
 
         for node in nodes:
             if node.get("node_type") == "printer" and "pc" in positions:
-                self._add_edge(
+                _add_edge(
                     self._scene,
                     positions["pc"],
                     positions[str(node["id"])],
                     dashed=True,
-                    color="#7b1fa2",
+                    color="#3b1a5e",
                 )
 
+        # Cards on top
         for node_id, pos in positions.items():
-            self._add_node(self._scene, pos, node_by_id[node_id])
+            _add_node(self._scene, pos, node_by_id[node_id])
 
         self._fit_view()
-
-    def _add_node(
-        self, scene: QGraphicsScene, pos: tuple[float, float], node_dict: dict
-    ) -> None:
-        x, y = pos
-        node_type = str(node_dict.get("node_type", "device"))
-        color = QColor(_NODE_COLORS.get(node_type, "#2e7d32"))
-
-        circle = QGraphicsEllipseItem(
-            QRectF(x - _RADIUS, y - _RADIUS, _RADIUS * 2, _RADIUS * 2)
-        )
-        circle.setBrush(QBrush(color))
-        circle.setPen(QPen(QColor("#ffffff"), 2))
-        scene.addItem(circle)
-
-        label = QGraphicsTextItem(str(node_dict.get("label", "")))
-        label.setDefaultTextColor(QColor("#f0f6fc"))
-        label.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
-        label.setTextWidth(150)
-        label.setPos(x - 75, y + _RADIUS + 6)
-        scene.addItem(label)
-
-        sublabel = QGraphicsTextItem(str(node_dict.get("sublabel", "")))
-        sublabel.setDefaultTextColor(QColor("#9aa4b2"))
-        sublabel.setFont(QFont("Segoe UI", 8))
-        sublabel.setTextWidth(150)
-        sublabel.setPos(x - 75, y + _RADIUS + 20)
-        scene.addItem(sublabel)
-
-    def _add_edge(
-        self,
-        scene: QGraphicsScene,
-        p1: tuple[float, float],
-        p2: tuple[float, float],
-        dashed: bool = False,
-        color: str = "#9aa4b2",
-    ) -> None:
-        pen = QPen(QColor(color), 2)
-        if dashed:
-            pen.setStyle(Qt.PenStyle.DashLine)
-        scene.addLine(p1[0], p1[1], p2[0], p2[1], pen)
