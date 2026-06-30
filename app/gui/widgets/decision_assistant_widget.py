@@ -65,8 +65,12 @@ class DecisionAssistantWidget(QFrame):
 
         layout.addLayout(_build_step_chain(_DUMMY_STEPS))
 
+        cause_label = QLabel("Najvjerovatniji uzrok:")
+        cause_label.setStyleSheet("color: #9aa4b2; font-size: 11px;")
+        layout.addWidget(cause_label)
+
         conclusion_label = QLabel(_DUMMY_CONCLUSION)
-        conclusion_label.setStyleSheet("color: #f85149; font-weight: bold;")
+        conclusion_label.setStyleSheet("color: #e3b341; font-weight: 600;")
         conclusion_label.setWordWrap(True)
         layout.addWidget(conclusion_label)
 

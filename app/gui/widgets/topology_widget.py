@@ -3,7 +3,16 @@ from __future__ import annotations
 import re
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
+from PySide6.QtWidgets import (
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QScrollArea,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 
 from app.modules.network.models import NetworkData
 from app.modules.printers.models import PrintersData
@@ -81,25 +90,26 @@ def _nodes_from_scan(
 def _build_node(icon: str, name: str, ip: str, tag: str, tag_color: str) -> QFrame:
     frame = QFrame()
     frame.setObjectName("StatusCard")
+    frame.setFixedWidth(160)
     layout = QVBoxLayout(frame)
-    layout.setContentsMargins(12, 10, 12, 10)
+    layout.setContentsMargins(12, 12, 12, 12)
+    layout.setSpacing(4)
 
-    top_row = QHBoxLayout()
     icon_lbl = QLabel(icon)
-    icon_lbl.setStyleSheet("font-size: 18px;")
-    name_lbl = QLabel(name)
-    name_lbl.setStyleSheet("font-weight: bold;")
-    top_row.addWidget(icon_lbl)
-    top_row.addWidget(name_lbl)
-    top_row.addStretch(1)
-    layout.addLayout(top_row)
+    icon_lbl.setStyleSheet("font-size: 22px;")
+    layout.addWidget(icon_lbl)
 
-    ip_lbl = QLabel(ip)
-    ip_lbl.setStyleSheet("color: #9aa4b2;")
+    name_lbl = QLabel(name)
+    name_lbl.setStyleSheet("font-weight: bold; font-size: 12px;")
+    name_lbl.setWordWrap(True)
+    layout.addWidget(name_lbl)
+
+    ip_lbl = QLabel(ip or "—")
+    ip_lbl.setStyleSheet("color: #9aa4b2; font-size: 11px;")
     layout.addWidget(ip_lbl)
 
     tag_lbl = QLabel(tag)
-    tag_lbl.setStyleSheet(f"color: {tag_color}; font-weight: bold;")
+    tag_lbl.setStyleSheet(f"color: {tag_color}; font-weight: bold; font-size: 11px;")
     layout.addWidget(tag_lbl)
 
     return frame
@@ -107,8 +117,9 @@ def _build_node(icon: str, name: str, ip: str, tag: str, tag_color: str) -> QFra
 
 def _build_arrow() -> QLabel:
     arrow = QLabel("→")
-    arrow.setStyleSheet("color: #4b5566; font-size: 18px;")
+    arrow.setStyleSheet("color: #2d4f6e; font-size: 22px;")
     arrow.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    arrow.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Preferred)
     return arrow
 
 
@@ -146,6 +157,7 @@ class NetworkTopologyWidget(QFrame):
         self.setObjectName("PanelCard")
         outer = QVBoxLayout(self)
         outer.setContentsMargins(16, 12, 16, 12)
+        outer.setSpacing(10)
 
         header_row = QHBoxLayout()
         title = QLabel("Network Topology (detektovani uređaji na mreži)")
@@ -157,18 +169,34 @@ class NetworkTopologyWidget(QFrame):
         header_row.addWidget(refresh_lbl)
         outer.addLayout(header_row)
 
-        self._nodes_row = QHBoxLayout()
+        # Scrollable nodes area
+        self._scroll = QScrollArea()
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self._scroll.setFixedHeight(130)
+        self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self._scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
+        self._nodes_container = QWidget()
+        self._nodes_container.setStyleSheet("background: transparent;")
+        self._nodes_row = QHBoxLayout(self._nodes_container)
+        self._nodes_row.setContentsMargins(0, 0, 0, 0)
+        self._nodes_row.setSpacing(8)
+        self._scroll.setWidget(self._nodes_container)
         self._show_placeholder()
-        outer.addLayout(self._nodes_row)
+        outer.addWidget(self._scroll)
 
         bottom_row = QHBoxLayout()
         bottom_row.addLayout(_build_legend())
-        bottom_row.addWidget(QPushButton("Open Network Map"))
+        open_map_btn = QPushButton("🗺 Open Network Map")
+        open_map_btn.setFixedWidth(160)
+        bottom_row.addWidget(open_map_btn)
         outer.addLayout(bottom_row)
 
     def _show_placeholder(self) -> None:
         lbl = QLabel("Pokrenite sken da vidite uređaje na mreži.")
-        lbl.setStyleSheet("color: #9aa4b2;")
+        lbl.setStyleSheet("color: #9aa4b2; padding: 20px;")
+        lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._nodes_row.addWidget(lbl)
         self._nodes_row.addStretch(1)
 

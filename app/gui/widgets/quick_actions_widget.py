@@ -4,19 +4,40 @@ from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
 
 from app.core.issue import Issue
-from app.gui.widgets.risk_badge import RiskBadge
+from app.core.risk_level import RiskLevel
+
+_SHIELD_COLOR = {
+    RiskLevel.CRITICAL: "#f85149",
+    RiskLevel.HIGH:     "#d29922",
+    RiskLevel.MEDIUM:   "#58a6ff",
+    RiskLevel.LOW:      "#3fb950",
+}
 
 
-def _build_row(title: str, severity_str: str) -> QHBoxLayout:
+def _build_row(title: str, severity) -> QHBoxLayout:
     row = QHBoxLayout()
-    row.addWidget(QLabel("🛡"))
+    row.setSpacing(8)
+
+    shield_color = _SHIELD_COLOR.get(severity, "#58a6ff")
+    shield = QLabel("🛡")
+    shield.setStyleSheet(f"color: {shield_color};")
+    shield.setFixedWidth(20)
+    row.addWidget(shield)
+
     lbl = QLabel(title)
     lbl.setWordWrap(False)
-    row.addWidget(lbl)
-    row.addWidget(RiskBadge(severity_str))
-    row.addStretch(1)
-    review_btn = QPushButton("Review")
-    # Review is inert until Fix Center is wired (Faza 13).
+    lbl.setStyleSheet("font-size: 12px;")
+    row.addWidget(lbl, stretch=1)
+
+    # "Review" navigates to Fix Center — never executes fix directly (architecture rule)
+    review_btn = QPushButton("Apply")
+    review_btn.setFixedWidth(60)
+    review_btn.setStyleSheet(
+        "QPushButton { background-color: #1a7f37; color: white; border: none;"
+        " border-radius: 5px; padding: 4px 10px; font-size: 11px; font-weight: 600; }"
+        "QPushButton:hover { background-color: #2ea043; }"
+    )
+    review_btn.setToolTip("Opens Fix Center for review before applying")
     row.addWidget(review_btn)
     return row
 
@@ -69,4 +90,4 @@ class QuickActionsWidget(QFrame):
             self._content.addWidget(lbl)
             return
         for issue in issues[:4]:  # top 4 issues as review actions
-            self._content.addLayout(_build_row(issue.title, str(issue.severity)))
+            self._content.addLayout(_build_row(issue.title, issue.severity))

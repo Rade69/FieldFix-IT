@@ -16,22 +16,30 @@ _SEVERITY_COLOR = {
 
 def _build_row(color: str, title: str, description: str) -> QHBoxLayout:
     row = QHBoxLayout()
+    row.setSpacing(8)
+
     dot = QLabel("●")
-    dot.setStyleSheet(f"color: {color};")
-    dot.setAlignment(Qt.AlignmentFlag.AlignTop)
+    dot.setStyleSheet(f"color: {color}; font-size: 10px;")
+    dot.setFixedWidth(14)
+    dot.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
 
     text_col = QVBoxLayout()
-    text_col.setSpacing(2)
+    text_col.setSpacing(1)
     t = QLabel(title)
-    t.setStyleSheet("font-weight: bold;")
+    t.setStyleSheet("font-weight: 600; font-size: 12px;")
     d = QLabel(description)
-    d.setStyleSheet("color: #9aa4b2;")
+    d.setStyleSheet("color: #9aa4b2; font-size: 11px;")
     d.setWordWrap(True)
     text_col.addWidget(t)
     text_col.addWidget(d)
 
+    chevron = QLabel("›")
+    chevron.setStyleSheet("color: #4b5566; font-size: 16px;")
+    chevron.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+
     row.addWidget(dot)
-    row.addLayout(text_col)
+    row.addLayout(text_col, stretch=1)
+    row.addWidget(chevron)
     return row
 
 

@@ -28,24 +28,33 @@ def _os_string() -> str:
     return f"Windows {v.major}.{v.minor} (Build {v.build})"
 
 
-def _get_rows(network: NetworkData | None) -> list[tuple[str, str, str]]:
-    if network is None:
-        return [("🖥", "Status", "Click 'Run Diagnostics'")]
+_CATEGORY_COLOR = {
+    "Private": "#3fb950",
+    "DomainAuthenticated": "#58a6ff",
+    "Public": "#d29922",
+}
 
-    rows: list[tuple[str, str, str]] = []
-    rows.append(("🖥", "Computer Name", network.hostname or "—"))
-    rows.append(("🪟", "OS", _os_string()))
+
+def _get_rows(network: NetworkData | None) -> list[tuple[str, str, str, str]]:
+    """Returns list of (icon, key, value, value_color)."""
+    if network is None:
+        return [("🖥", "Status", "Click 'Run Diagnostics'", "")]
+
+    rows: list[tuple[str, str, str, str]] = []
+    rows.append(("🖥", "Computer Name", network.hostname or "—", ""))
+    rows.append(("🪟", "OS", _os_string(), ""))
 
     ipv4 = next((ip for ip in network.ip_addresses if _is_ipv4(ip.ip_address)), None)
     if ipv4:
-        rows.append(("📡", "IPv4 Address", ipv4.ip_address))
+        rows.append(("📡", "IPv4 Address", ipv4.ip_address, "#58a6ff"))
         if ipv4.prefix_length:
-            rows.append(("🌐", "Subnet Mask", _prefix_to_mask(ipv4.prefix_length)))
+            rows.append(("🌐", "Subnet Mask", _prefix_to_mask(ipv4.prefix_length), ""))
 
     if network.gateways:
         gw = network.gateways[0]
         suffix = " ✓" if network.gateway_reachable else (" ✕" if network.gateway_reachable is False else "")
-        rows.append(("🔀", "Default Gateway", gw.next_hop + suffix))
+        gw_color = "#3fb950" if network.gateway_reachable else ("#f85149" if network.gateway_reachable is False else "")
+        rows.append(("🔀", "Default Gateway", gw.next_hop + suffix, gw_color))
 
     if network.dns:
         servers: list[str] = []
@@ -53,27 +62,31 @@ def _get_rows(network: NetworkData | None) -> list[tuple[str, str, str]]:
             servers.extend(d.servers)
         unique = list(dict.fromkeys(servers))
         if unique:
-            rows.append(("🌐", "DNS Servers", ", ".join(unique[:3])))
+            rows.append(("🌐", "DNS Servers", ", ".join(unique[:3]), ""))
 
     if network.profiles:
-        rows.append(("📶", "Network Profile", network.profiles[0].category))
+        cat = network.profiles[0].category
+        rows.append(("📶", "Network Profile", cat, _CATEGORY_COLOR.get(cat, "#9aa4b2")))
 
     if network.adapters:
         a = network.adapters[0]
-        rows.append(("📶", "Adapter", a.description or a.name))
+        rows.append(("📶", "Adapter", a.description or a.name, ""))
         if a.mac_address:
-            rows.append(("🔗", "MAC Address", a.mac_address))
+            rows.append(("🔗", "MAC Address", a.mac_address, ""))
 
     return rows
 
 
-def _build_row(icon: str, key: str, value: str) -> QHBoxLayout:
+def _build_row(icon: str, key: str, value: str, value_color: str = "") -> QHBoxLayout:
     row = QHBoxLayout()
     icon_label = QLabel(icon)
     key_label = QLabel(key)
     key_label.setStyleSheet("color: #9aa4b2;")
     value_label = QLabel(value)
-    value_label.setStyleSheet("font-weight: bold;")
+    style = "font-weight: bold;"
+    if value_color:
+        style += f" color: {value_color};"
+    value_label.setStyleSheet(style)
     row.addWidget(icon_label)
     row.addWidget(key_label)
     row.addStretch(1)
@@ -115,5 +128,5 @@ class SystemInfoWidget(QFrame):
 
     def update_data(self, network: NetworkData | None) -> None:
         _clear_layout(self._content)
-        for icon, key, value in _get_rows(network):
-            self._content.addLayout(_build_row(icon, key, value))
+        for icon, key, value, color in _get_rows(network):
+            self._content.addLayout(_build_row(icon, key, value, color))
