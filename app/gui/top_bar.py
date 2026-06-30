@@ -151,10 +151,23 @@ class TopBar(QFrame):
         layout.addSpacing(10)
 
         logo_col = QVBoxLayout()
-        logo_col.setSpacing(2)
-        title = QLabel("FieldFix IT")
-        title.setStyleSheet("font-size: 22px; font-weight: 800; color: #f0f6fc;")
-        logo_col.addWidget(title)
+        logo_col.setSpacing(0)
+
+        title_row = QHBoxLayout()
+        title_row.setSpacing(6)
+        title_lbl = QLabel("FieldFix IT")
+        title_lbl.setStyleSheet("font-size: 22px; font-weight: 800; color: #f0f6fc;")
+        title_row.addWidget(title_lbl)
+        ver_lbl = QLabel("v1.0.0")
+        ver_lbl.setStyleSheet(
+            "font-size: 10px; color: #4b8bbe; background: #0d2840;"
+            " border: 1px solid #1f4060; border-radius: 4px; padding: 1px 5px;"
+        )
+        ver_lbl.setAlignment(Qt.AlignmentFlag.AlignBottom)
+        title_row.addWidget(ver_lbl)
+        title_row.addStretch(1)
+        logo_col.addLayout(title_row)
+
         logo_col.addWidget(_rich("Windows IT Diagnostics", muted=True))
         layout.addLayout(logo_col)
         layout.addSpacing(34)

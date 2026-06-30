@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QApplication,
     QFrame,
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
@@ -119,11 +120,13 @@ class DashboardPage(QWidget):
     def _setup_ui(self) -> None:
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
-        outer.setSpacing(8)
+        outer.setSpacing(0)
 
-        # ── Header ─────────────────────────────────────────────────────────
+        # ── Fixed header (outside scroll) ────────────────────────────────────
         header = QFrame()
         header.setObjectName("PanelCard")
+        header.setStyleSheet("QFrame#PanelCard { border-radius: 0; border-left: none;"
+                             " border-right: none; border-top: none; }")
         h_layout = QHBoxLayout(header)
         h_layout.setContentsMargins(16, 10, 16, 10)
 
@@ -135,6 +138,7 @@ class DashboardPage(QWidget):
         self._status_label = QLabel("Not scanned yet")
         self._status_label.setStyleSheet("color: #9aa4b2;")
         h_layout.addWidget(self._status_label)
+        h_layout.addSpacing(12)
 
         self._scan_btn = QPushButton("▶ Run Diagnostics")
         self._scan_btn.clicked.connect(self._run_scan)
@@ -142,9 +146,20 @@ class DashboardPage(QWidget):
 
         outer.addWidget(header)
 
-        # ── Status cards ── order matches mockup: Network/SMB/Firewall/Services/Printers/Issues
+        # ── Scrollable content area ──────────────────────────────────────────
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+
+        content = QWidget()
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(12, 10, 12, 10)
+        content_layout.setSpacing(10)
+        content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        # Status cards
         cards_row = QHBoxLayout()
-        cards_row.setSpacing(6)
+        cards_row.setSpacing(8)
         self._card_network  = StatusCard("Network",       "—", "neutral")
         self._card_smb      = StatusCard("Sharing / SMB", "—", "neutral")
         self._card_firewall = StatusCard("Firewall",      "—", "neutral")
@@ -156,42 +171,43 @@ class DashboardPage(QWidget):
             self._card_services, self._card_printers, self._card_issues,
         ):
             cards_row.addWidget(card)
-        outer.addLayout(cards_row)
+        content_layout.addLayout(cards_row)
 
-        # ── Info row ────────────────────────────────────────────────────────
+        # Info row — sys_info:recent_scan:issues_col = 5:5:4
         info_row = QHBoxLayout()
         info_row.setSpacing(8)
 
         self._sys_info_widget = SystemInfoWidget()
-        info_row.addWidget(self._sys_info_widget)
+        info_row.addWidget(self._sys_info_widget, stretch=5)
 
         self._recent_scan_widget = RecentScanWidget()
-        info_row.addWidget(self._recent_scan_widget)
+        info_row.addWidget(self._recent_scan_widget, stretch=5)
 
         issues_col = QVBoxLayout()
         issues_col.setSpacing(8)
         self._issues_widget = IssuesRecommendationsWidget()
         self._quick_actions_widget = QuickActionsWidget()
         self._quick_actions_widget.open_fix_center.connect(self.open_fix_center)
-        issues_col.addWidget(self._issues_widget)
-        issues_col.addWidget(self._quick_actions_widget)
-        info_row.addLayout(issues_col)
+        issues_col.addWidget(self._issues_widget, stretch=1)
+        issues_col.addWidget(self._quick_actions_widget, stretch=1)
+        info_row.addLayout(issues_col, stretch=4)
 
-        outer.addLayout(info_row)
+        content_layout.addLayout(info_row)
 
-        # ── Topology ────────────────────────────────────────────────────────
+        # Topology
         self._topology_widget = NetworkTopologyWidget()
-        outer.addWidget(self._topology_widget)
+        content_layout.addWidget(self._topology_widget)
 
-        # ── Timeline row ────────────────────────────────────────────────────
+        # Timeline + Decision Assistant
         timeline_row = QHBoxLayout()
         timeline_row.setSpacing(8)
         self._timeline_widget = ActivityTimelineWidget()
         timeline_row.addWidget(self._timeline_widget, stretch=6)
         timeline_row.addWidget(DecisionAssistantWidget(), stretch=4)
-        outer.addLayout(timeline_row)
+        content_layout.addLayout(timeline_row)
 
-        outer.addStretch(1)
+        scroll.setWidget(content)
+        outer.addWidget(scroll, stretch=1)
 
     # ── Scan ────────────────────────────────────────────────────────────────
 

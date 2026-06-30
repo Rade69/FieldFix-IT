@@ -3,6 +3,11 @@ from __future__ import annotations
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout
 
+_ROW_STYLE = (
+    "QFrame#IssueRow { border-radius: 6px; padding: 2px; }"
+    "QFrame#IssueRow:hover { background-color: #101f2e; }"
+)
+
 from app.core.issue import Issue
 from app.core.risk_level import RiskLevel
 
@@ -14,8 +19,13 @@ _SEVERITY_COLOR = {
 }
 
 
-def _build_row(color: str, title: str, description: str) -> QHBoxLayout:
-    row = QHBoxLayout()
+def _build_row(color: str, title: str, description: str) -> QFrame:
+    wrapper = QFrame()
+    wrapper.setObjectName("IssueRow")
+    wrapper.setStyleSheet(_ROW_STYLE)
+
+    row = QHBoxLayout(wrapper)
+    row.setContentsMargins(4, 4, 4, 4)
     row.setSpacing(8)
 
     dot = QLabel("●")
@@ -40,7 +50,7 @@ def _build_row(color: str, title: str, description: str) -> QHBoxLayout:
     row.addWidget(dot)
     row.addLayout(text_col, stretch=1)
     row.addWidget(chevron)
-    return row
+    return wrapper
 
 
 def _clear_layout(layout) -> None:
@@ -97,4 +107,4 @@ class IssuesRecommendationsWidget(QFrame):
         for issue in issues[:6]:  # show top 6 in Dashboard panel
             c = _SEVERITY_COLOR.get(issue.severity, "#9aa4b2")
             desc = issue.likely_cause or (issue.evidence[0] if issue.evidence else "")
-            self._content.addLayout(_build_row(c, issue.title, desc))
+            self._content.addWidget(_build_row(c, issue.title, desc))

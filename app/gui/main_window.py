@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QApplication, QHBoxLayout, QMainWindow, QStackedWidget, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QApplication, QHBoxLayout, QLabel, QMainWindow, QPushButton, QStackedWidget, QVBoxLayout, QWidget
 
 from app.gui.dashboard import DashboardPage
 from app.gui.pages.about_page import AboutPage
@@ -77,8 +77,34 @@ class MainWindow(QMainWindow):
         outer_layout.addWidget(body, stretch=1)
         self.setCentralWidget(central)
 
-        # Scan Mode is always the default — Fix Mode is a manual, later opt-in (see docs/architecture_notes.md).
-        self.statusBar().showMessage("Scan Mode: Read Only")
+        self._setup_status_bar()
+
+    def _setup_status_bar(self) -> None:
+        bar = self.statusBar()
+        # Scan Mode is always default — Fix Mode is a manual opt-in (see docs/architecture_notes.md)
+        mode_lbl = QLabel("🛡 Scan Mode: Read Only")
+        mode_lbl.setStyleSheet("color: #3fb950; font-weight: 600; padding: 0 8px;")
+        bar.addWidget(mode_lbl)
+
+        self._sb_status = QLabel("● Ready")
+        self._sb_status.setStyleSheet("color: #9aa4b2; padding: 0 8px;")
+        bar.addWidget(self._sb_status)
+
+        export_btn = QPushButton("📄 Export Report")
+        export_btn.setStyleSheet(
+            "QPushButton { background: transparent; color: #58a6ff; border: none;"
+            " padding: 2px 8px; font-size: 12px; }"
+            "QPushButton:hover { color: #f0f6fc; }"
+        )
+        bar.addPermanentWidget(export_btn)
+
+        last_report_btn = QPushButton("📋 Open Last Report")
+        last_report_btn.setStyleSheet(
+            "QPushButton { background: transparent; color: #58a6ff; border: none;"
+            " padding: 2px 8px; font-size: 12px; }"
+            "QPushButton:hover { color: #f0f6fc; }"
+        )
+        bar.addPermanentWidget(last_report_btn)
 
     def _fit_to_screen(self) -> None:
         """Size and center the window within the available screen area (excludes taskbar)."""
