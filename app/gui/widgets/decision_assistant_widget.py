@@ -69,6 +69,7 @@ def _clear_layout(layout) -> None:
             _clear_layout(child)
 
 
+# Context: agent_reports/2026-07-01_fix-status-summary-report-client-summary.md
 class DecisionAssistantWidget(QFrame):
     """Decision Assistant panel populated from Decision Engine issues."""
 

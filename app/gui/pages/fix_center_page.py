@@ -28,6 +28,7 @@ from app.core.risk_level import RiskLevel
 from app.gui.widgets.risk_badge import RiskBadge
 
 
+# Context: agent_reports/2026-06-30_fix-center-v1.md
 @dataclass(frozen=True)
 class FixAction:
     id: str
@@ -194,6 +195,7 @@ class _FixActionCard(QFrame):
         outer.addLayout(action_row)
         self._apply_current_status()
 
+    # Context: agent_reports/2026-07-01_fix-status-summary-report-client-summary.md
     def _apply_current_status(self) -> None:
         if not self._action.check_cmd:
             return

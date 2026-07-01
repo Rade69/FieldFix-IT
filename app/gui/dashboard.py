@@ -154,6 +154,7 @@ def _suggest_next_step(result: ScanResult) -> str:
     return "Review the highest severity issue."
 
 
+# Context: agent_reports/2026-07-01_fix-status-summary-report-client-summary.md
 def _build_summary(result: ScanResult) -> str:
     report = result.report
     gateway_count = len(report.network.gateways) if report.network else 0
@@ -183,6 +184,7 @@ class _ScanWorker(QThread):
         self.finished.emit(result)
 
 
+# Context: agent_reports/2026-06-30_dashboard-v2.md
 class DashboardPage(QWidget):
     """Dashboard with real scan data from Faza 11 onwards."""
 

@@ -15,6 +15,7 @@ from app.modules.smb.models import SmbData
 from app.reports.models import ScanReport
 
 
+# Context: agent_reports/2026-06-30_decision-engine.md
 class DecisionEngine:
     """Stateless rule engine. Call analyze() with a ScanReport, get Issues back."""
 

@@ -28,6 +28,7 @@ class ScanResult:
     scanned_at: str  # ISO 8601
 
 
+# Context: agent_reports/2026-06-30_dashboard-v2.md
 class ScanSession:
     """Runs Network, SMB, Services and Printers scanners then Decision Engine."""
 

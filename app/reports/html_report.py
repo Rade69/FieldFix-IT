@@ -47,6 +47,7 @@ def _bool_cell(value: bool | None, true_good: bool = True) -> str:
     return f'<span class="{cls}">{label}</span>'
 
 
+# Context: agent_reports/2026-06-30_report-generator.md
 def write_html(report: ScanReport, issues: tuple[Issue, ...] = ()) -> str:
     body_parts: list[str] = []
 
@@ -98,6 +99,7 @@ def _suggested_next_steps(issues: tuple[Issue, ...]) -> list[str]:
     return steps
 
 
+# Context: agent_reports/2026-07-01_fix-status-summary-report-client-summary.md
 def _client_summary_html(report: ScanReport, issues: tuple[Issue, ...]) -> str:
     s = "<h2>Client Summary</h2>\n"
     s += f"<p><strong>Issues found:</strong> {_e(len(issues))}</p>\n"

@@ -69,6 +69,7 @@ _COL_W     = 280
 
 # ── Graph data helpers (kept intact — used by tests) ─────────────────────────
 
+# Context: agent_reports/2026-07-01_topology-inventory-polish.md
 def build_nodes(network: NetworkData, printers: PrintersData) -> list[dict]:
     """Build topology node list from scan data. IPv6 entries are excluded."""
     local_ips = {ip.ip_address for ip in network.ip_addresses if ip.ip_address}

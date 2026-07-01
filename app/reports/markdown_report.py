@@ -21,6 +21,7 @@ def _bool_str(value: bool | None, true_good: bool = True) -> str:
     return _NO if true_good else _YES
 
 
+# Context: agent_reports/2026-06-30_report-generator.md
 def write_markdown(report: ScanReport, issues: tuple[Issue, ...] = ()) -> str:
     lines: list[str] = []
 
@@ -71,6 +72,7 @@ def _suggested_next_steps(issues: tuple[Issue, ...]) -> list[str]:
     return steps
 
 
+# Context: agent_reports/2026-07-01_fix-status-summary-report-client-summary.md
 def _client_summary_section(report: ScanReport, issues: tuple[Issue, ...]) -> list[str]:
     lines = ["## Client Summary", ""]
     lines += [
