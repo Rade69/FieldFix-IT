@@ -299,7 +299,8 @@ class DashboardPage(QWidget):
         timeline_row.setSpacing(8)
         self._timeline_widget = ActivityTimelineWidget()
         timeline_row.addWidget(self._timeline_widget, stretch=6)
-        timeline_row.addWidget(DecisionAssistantWidget(), stretch=4)
+        self._decision_assistant_widget = DecisionAssistantWidget()
+        timeline_row.addWidget(self._decision_assistant_widget, stretch=4)
         content_layout.addLayout(timeline_row)
 
         scroll.setWidget(content)
@@ -380,6 +381,7 @@ class DashboardPage(QWidget):
         self._recent_scan_widget.update_data(report)
         self._issues_widget.update_data(issues)
         self._quick_actions_widget.update_data(issues)
+        self._decision_assistant_widget.update_data(issues)
         self._timeline_widget.update_data(_build_timeline_events(result))
         self._topology_widget.update_data(report.network, report.printers)
         self._summary_label.setText(_build_summary(result))

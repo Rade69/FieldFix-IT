@@ -2,6 +2,8 @@
 
 import json
 
+from app.core.issue import Issue
+from app.core.risk_level import RiskLevel
 from app.modules.network.models import NetworkData, AdapterInfo, GatewayInfo, IPAddressInfo
 from app.modules.printers.models import PrinterInfo, PrintersData
 from app.modules.services.models import ServiceInfo, ServicesData
@@ -52,6 +54,16 @@ def _smb_data() -> SmbData:
         client_config=SmbClientConfig(smb1_enabled=False, require_security_signature=False,
                                       enable_security_signature=True, enable_insecure_guest_logons=False),
         shares=(SmbShare(name="Public", path="C:\\Public", description="Public share", share_type="Disk"),),
+    )
+
+
+def _issue() -> Issue:
+    return Issue(
+        id="PRINTER_OFFLINE",
+        title="Printer offline",
+        severity=RiskLevel.HIGH,
+        related_module="printers",
+        recommended_actions=["Check printer power and network connection"],
     )
 
 
@@ -165,6 +177,16 @@ class TestMarkdownReport:
         assert "## ⚙ Services" in result
         assert "## 🖨 Printers" in result
 
+    def test_client_summary_before_technical_details(self):
+        report = _minimal_report(printers=_printers_data())
+        result = write_markdown(report, (_issue(),))
+        assert "## Client Summary" in result
+        assert "## Technical Details" in result
+        assert result.index("## Client Summary") < result.index("## Technical Details")
+        assert "HP LaserJet" in result
+        assert "Issues found:** 1" in result
+        assert "Check printer power and network connection" in result
+
 
 # ── HTML ──────────────────────────────────────────────────────────────────────
 
@@ -220,3 +242,13 @@ class TestHtmlReport:
     def test_footer_present(self):
         result = write_html(_minimal_report())
         assert "<footer>" in result
+
+    def test_client_summary_before_technical_details(self):
+        report = _minimal_report(printers=_printers_data())
+        result = write_html(report, (_issue(),))
+        assert "<h2>Client Summary</h2>" in result
+        assert "<h2>Technical Details</h2>" in result
+        assert result.index("<h2>Client Summary</h2>") < result.index("<h2>Technical Details</h2>")
+        assert "HP LaserJet" in result
+        assert "<strong>Issues found:</strong> 1" in result
+        assert "Check printer power and network connection" in result
