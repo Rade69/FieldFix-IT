@@ -83,6 +83,7 @@ Filename: "{app}\{#AppExeName}"; Description: "Launch {#AppName}"; \
 ; Remove user settings from %APPDATA%\FieldFix IT
 Type: filesandordirs; Name: "{userappdata}\FieldFix IT"
 
+; Context: agent_reports/2026-07-01_installer-header-banner.md
 [Code]
 var
   HeaderBanner: TBitmapImage;
