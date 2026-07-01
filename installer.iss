@@ -26,9 +26,10 @@ AllowNoIcons=yes
 ; Output
 OutputDir=installer_output
 OutputBaseFilename=FieldFix_IT_Setup_{#AppVersion}
-SetupIconFile=app\resources\icons\fieldfix_icon.ico
-WizardSmallImageFile=app\resources\icons\fieldfix_icon_64.png
-WizardStyle=modern
+SetupIconFile=branding\installer_icon.ico
+WizardImageFile=branding\wizard_panel.bmp
+WizardSmallImageFile=branding\wizard_icon_64.bmp
+WizardStyle=classic
 
 ; Compression
 Compression=lzma2/ultra64
@@ -59,6 +60,9 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "Create a &Desktop shortcut"; GroupDescription: "Additional icons:"
 
 [Files]
+; Branding used by the custom header on inner wizard pages
+Source: "branding\wizard_classic_banner.bmp"; Flags: dontcopy
+
 ; All files from the PyInstaller one-folder build
 Source: "{#BuildDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
@@ -78,3 +82,59 @@ Filename: "{app}\{#AppExeName}"; Description: "Launch {#AppName}"; \
 [UninstallDelete]
 ; Remove user settings from %APPDATA%\FieldFix IT
 Type: filesandordirs; Name: "{userappdata}\FieldFix IT"
+
+[Code]
+var
+  HeaderBanner: TBitmapImage;
+
+function IsInnerWizardPage(PageID: Integer): Boolean;
+begin
+  Result :=
+    (PageID <> wpWelcome) and
+    (PageID <> wpPreparing) and
+    (PageID <> wpInstalling) and
+    (PageID <> wpFinished);
+end;
+
+procedure UpdateHeaderBanner(PageID: Integer);
+begin
+  if HeaderBanner = nil then
+  begin
+    Exit;
+  end;
+
+  HeaderBanner.Visible := IsInnerWizardPage(PageID);
+  if HeaderBanner.Visible then
+  begin
+    HeaderBanner.BringToFront;
+  end;
+end;
+
+procedure InitializeWizard;
+begin
+  ExtractTemporaryFile('wizard_classic_banner.bmp');
+
+  WizardForm.MainPanel.Height := ScaleY(128);
+  WizardForm.InnerNotebook.Top := WizardForm.MainPanel.Top + WizardForm.MainPanel.Height;
+  WizardForm.InnerNotebook.Height := WizardForm.Bevel.Top - WizardForm.InnerNotebook.Top;
+
+  HeaderBanner := TBitmapImage.Create(WizardForm);
+  HeaderBanner.Parent := WizardForm.MainPanel;
+  HeaderBanner.AutoSize := False;
+  HeaderBanner.Stretch := True;
+  HeaderBanner.SetBounds(0, 0, WizardForm.MainPanel.Width, ScaleY(72));
+  HeaderBanner.Bitmap.LoadFromFile(ExpandConstant('{tmp}\wizard_classic_banner.bmp'));
+  HeaderBanner.Visible := False;
+
+  WizardForm.PageNameLabel.Left := ScaleX(24);
+  WizardForm.PageNameLabel.Top := ScaleY(78);
+  WizardForm.PageNameLabel.Width := WizardForm.MainPanel.Width - ScaleX(48);
+  WizardForm.PageDescriptionLabel.Left := ScaleX(24);
+  WizardForm.PageDescriptionLabel.Top := ScaleY(101);
+  WizardForm.PageDescriptionLabel.Width := WizardForm.MainPanel.Width - ScaleX(48);
+end;
+
+procedure CurPageChanged(CurPageID: Integer);
+begin
+  UpdateHeaderBanner(CurPageID);
+end;
