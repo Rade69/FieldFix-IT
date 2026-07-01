@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.core.powershell_runner import PowerShellRunner
+from app.gui.widgets.empty_state import info_banner
 from app.modules.smb.models import SmbData
 from app.modules.smb.scanner import NET_VIEW_ERROR_HINTS, SmbScanner
 
@@ -145,6 +146,13 @@ class SmbPage(QWidget):
     def _display_results(self, data: SmbData) -> None:
         self._clear()
 
+        if not self._ip_input.text().strip():
+            self._results_layout.addWidget(info_banner(
+                "Remote SMB scan skipped — no target IP provided.",
+                hint="Enter an IP address in the header to check port 445 and shares on a remote PC.",
+                level="info",
+            ))
+
         # ── SMB Server Config ───────────────────────────────────────────────
         frame, layout = _panel("🖥 SMB Server Configuration")
         if data.server_config:
@@ -154,7 +162,11 @@ class SmbPage(QWidget):
             layout.addLayout(_kv_row("Security Signature Required", _bool_badge(sc.require_security_signature)))
             layout.addLayout(_kv_row("Security Signature Enabled", _bool_badge(sc.enable_security_signature)))
         else:
-            layout.addWidget(QLabel("  Not available (Get-SmbServerConfiguration failed)"))
+            layout.addWidget(info_banner(
+                "SMB server configuration unavailable.",
+                hint="Get-SmbServerConfiguration failed. This PC may not have the SMB server feature enabled.",
+                level="warning",
+            ))
         self._results_layout.addWidget(frame)
 
         # ── SMB Client Config ───────────────────────────────────────────────
@@ -169,7 +181,11 @@ class SmbPage(QWidget):
             layout.addLayout(_kv_row("Security Signature Required", _bool_badge(cc.require_security_signature)))
             layout.addLayout(_kv_row("Security Signature Enabled", _bool_badge(cc.enable_security_signature)))
         else:
-            layout.addWidget(QLabel("  Not available (Get-SmbClientConfiguration failed)"))
+            layout.addWidget(info_banner(
+                "SMB client configuration unavailable.",
+                hint="Get-SmbClientConfiguration failed.",
+                level="warning",
+            ))
         self._results_layout.addWidget(frame)
 
         # ── Local Shares ────────────────────────────────────────────────────
@@ -181,7 +197,11 @@ class SmbPage(QWidget):
                     desc += f"  — {s.description}"
                 layout.addLayout(_kv_row(s.name, value_str=desc))
         else:
-            layout.addWidget(QLabel("  No shares found or scan failed."))
+            layout.addWidget(info_banner(
+                "No local shares found.",
+                hint="This PC has no shared folders configured.",
+                level="info",
+            ))
         self._results_layout.addWidget(frame)
 
         # ── Port 445 ────────────────────────────────────────────────────────
@@ -209,25 +229,26 @@ class SmbPage(QWidget):
                     for e in data.net_view_entries:
                         layout.addLayout(_kv_row(e.name, value_str=f"{e.share_type}  {e.comment}".strip()))
                 else:
-                    layout.addWidget(QLabel("  No shares visible."))
+                    layout.addWidget(info_banner(
+                        "Connected but no shares visible.",
+                        hint="Remote PC is reachable but has no shared folders, or access is restricted.",
+                        level="info",
+                    ))
             else:
                 code = data.net_view_error_code
-                hint = NET_VIEW_ERROR_HINTS.get(code, "") if code else ""
+                net_hint = NET_VIEW_ERROR_HINTS.get(code, "") if code else ""
                 err_label = QLabel(f"✕ Error {code}" if code else "✕ Failed")
                 err_label.setStyleSheet("color: #f85149; font-weight: bold;")
                 layout.addLayout(_kv_row("Result", err_label))
-                if hint:
-                    hint_label = QLabel(hint)
-                    hint_label.setStyleSheet("color: #d29922;")
-                    hint_label.setWordWrap(True)
-                    layout.addWidget(hint_label)
+                if net_hint:
+                    layout.addWidget(info_banner(net_hint, level="warning"))
             self._results_layout.addWidget(frame)
 
         # ── Errors ──────────────────────────────────────────────────────────
         if data.errors:
             frame, layout = _panel(f"⚠ Scan Warnings ({len(data.errors)})")
-            for i, e in enumerate(data.errors, 1):
-                layout.addLayout(_kv_row(f"#{i}", value_str=e))
+            for e in data.errors:
+                layout.addWidget(info_banner(e, level="warning"))
             self._results_layout.addWidget(frame)
 
         self._results_layout.addStretch(1)

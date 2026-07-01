@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.core.powershell_runner import PowerShellRunner
+from app.gui.widgets.empty_state import info_banner
 from app.modules.printers.models import PrintersData
 from app.modules.printers.scanner import PrintersScanner
 
@@ -200,7 +201,22 @@ class PrintersPage(QWidget):
 
         else:
             frame, layout = _panel("🖨 Installed Printers")
-            layout.addWidget(QLabel("No printers found."))
+            spooler_err = any(
+                "spooler" in e.lower() or "get-printer" in e.lower()
+                for e in data.errors
+            )
+            if spooler_err:
+                layout.addWidget(info_banner(
+                    "Printer scan failed — Print Spooler service may not be running.",
+                    hint="Go to Fix Center → Start Print Spooler to fix this.",
+                    level="error",
+                ))
+            else:
+                layout.addWidget(info_banner(
+                    "No printers installed on this computer.",
+                    hint="Connect a printer or install a driver to see it here.",
+                    level="info",
+                ))
             self._results_layout.addWidget(frame)
 
         # ── Print jobs (only if any) ─────────────────────────────────────────
@@ -261,12 +277,9 @@ class PrintersPage(QWidget):
 
         # ── Errors ───────────────────────────────────────────────────────────
         if data.errors:
-            frame, layout = _panel(f"⚠ Warnings ({len(data.errors)})")
+            frame, layout = _panel(f"⚠ Scan Warnings ({len(data.errors)})")
             for e in data.errors:
-                lbl = QLabel(e)
-                lbl.setStyleSheet("color: #d29922;")
-                lbl.setWordWrap(True)
-                layout.addWidget(lbl)
+                layout.addWidget(info_banner(e, level="warning"))
             self._results_layout.addWidget(frame)
 
         self._results_layout.addStretch(1)
