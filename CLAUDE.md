@@ -135,7 +135,7 @@ Dodati kasnije ako zatreba, ne fabrikovati skriptu bez potrebe.
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **FieldFix-IT** (2602 symbols, 4699 relationships, 69 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **FieldFix-IT** (2744 symbols, 4983 relationships, 87 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
