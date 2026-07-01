@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 
 from app.core.powershell_runner import PowerShellRunner
 from app.core.risk_level import RiskLevel
+from app.core.settings import get_settings
 from app.core.scan_session import ScanResult, ScanSession
 from app.gui.widgets.decision_assistant_widget import DecisionAssistantWidget
 from app.gui.widgets.issues_widget import IssuesRecommendationsWidget
@@ -117,6 +118,9 @@ class DashboardPage(QWidget):
         super().__init__()
         self._runner = PowerShellRunner()
         self._setup_ui()
+        if get_settings().auto_scan_on_startup:
+            from PySide6.QtCore import QTimer
+            QTimer.singleShot(300, self._run_scan)
 
     def _setup_ui(self) -> None:
         outer = QVBoxLayout(self)

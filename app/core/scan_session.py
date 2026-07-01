@@ -13,6 +13,7 @@ from typing import Callable
 from app.core.decision_engine import DecisionEngine
 from app.core.issue import Issue
 from app.core.powershell_runner import PowerShellRunner
+from app.core.settings import get_settings
 from app.modules.network.scanner import NetworkScanner
 from app.modules.printers.scanner import PrintersScanner
 from app.modules.services.scanner import ServicesScanner
@@ -44,17 +45,20 @@ class ScanSession:
             if on_progress:
                 on_progress(msg)
 
+        s = get_settings()
+        t = s.scan_timeout_sec
+
         _prog("Scanning Network…")
-        network = NetworkScanner(self._runner).scan()
+        network = NetworkScanner(self._runner).scan() if s.scan_network else None
 
         _prog("Scanning SMB…")
-        smb = SmbScanner(self._runner).scan(target_ip=smb_target_ip)
+        smb = SmbScanner(self._runner).scan(target_ip=smb_target_ip) if s.scan_smb else None
 
         _prog("Scanning Services…")
-        services = ServicesScanner(self._runner).scan()
+        services = ServicesScanner(self._runner).scan() if s.scan_services else None
 
         _prog("Scanning Printers…")
-        printers = PrintersScanner(self._runner).scan()
+        printers = PrintersScanner(self._runner).scan() if s.scan_printers else None
 
         _prog("Analyzing…")
         hostname = network.hostname if network else ""
