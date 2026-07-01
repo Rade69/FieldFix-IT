@@ -1,5 +1,11 @@
 from app.gui.pages.topology_page import build_nodes, compute_positions
-from app.modules.network.models import ArpEntry, GatewayInfo, IPAddressInfo, NetworkData
+from app.modules.network.models import (
+    ArpEntry,
+    GatewayInfo,
+    IPAddressInfo,
+    NetworkData,
+    OsFingerprint,
+)
 from app.modules.printers.models import PrinterInfo, PrintersData
 
 
@@ -8,9 +14,11 @@ def _network(
     ips: tuple[IPAddressInfo, ...] = (IPAddressInfo("Ethernet", "192.168.1.10"),),
     gateways: tuple[GatewayInfo, ...] = (GatewayInfo("Ethernet", "192.168.1.1"),),
     arp_entries: tuple[ArpEntry, ...] = (),
+    local_os: OsFingerprint | None = None,
 ) -> NetworkData:
     return NetworkData(
         hostname=hostname,
+        local_os=local_os,
         ip_addresses=ips,
         gateways=gateways,
         arp_entries=arp_entries,
@@ -28,6 +36,21 @@ def test_pc_node_always_present():
     assert pc["id"] == "pc"
     assert pc["label"] == "This PC"
     assert pc["node_type"] == "pc"
+
+
+def test_pc_node_includes_os_fingerprint():
+    os_fingerprint = OsFingerprint(
+        "Windows 11 Pro",
+        confidence="HIGH",
+        detected_by=("local Windows OS query",),
+    )
+
+    nodes = build_nodes(_network(local_os=os_fingerprint), PrintersData())
+
+    pc = nodes[0]
+    assert pc["os"] == "Windows 11 Pro"
+    assert pc["confidence"] == "HIGH"
+    assert pc["detected_by"] == "local Windows OS query"
 
 
 def test_gateway_node_when_gateways_exist():
@@ -54,6 +77,9 @@ def test_arp_entries_become_device_nodes():
     assert device["id"] == "arp_192.168.1.55"
     assert device["label"] == "192.168.1.55"
     assert device["sublabel"] == "AA-BB-CC"
+    assert device["os"] == "Unknown"
+    assert device["confidence"] == "LOW"
+    assert device["detected_by"] == "ARP table only"
 
 
 def test_gateway_ip_excluded_from_devices():
@@ -106,7 +132,7 @@ def test_gateway_at_correct_x():
 
     positions = compute_positions(nodes, 800, 600)
 
-    assert positions["gw"][0] == 310
+    assert positions["gw"][0] == 390  # 110 + _COL_W(280)
     assert positions["gw"][1] == 300
 
 
@@ -121,4 +147,9 @@ def test_devices_evenly_spaced_y():
     positions = compute_positions(nodes, 800, 600)
     y_values = [positions[f"arp_192.168.1.{last}"][1] for last in (20, 30, 40)]
 
-    assert y_values == [150, 300, 450]
+    # 3 devices, _NODE_V_GAP=136, centered around canvas_h/2=300:
+    # start_y = 300 - 136 = 164; values = [164, 300, 436]
+    assert y_values[1] == 300  # middle device always at center
+    gap = y_values[1] - y_values[0]
+    assert gap == y_values[2] - y_values[1]  # equal spacing
+    assert gap == 136

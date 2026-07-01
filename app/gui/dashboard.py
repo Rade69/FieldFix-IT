@@ -2,19 +2,21 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QApplication,
     QFrame,
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
 
 from app.core.powershell_runner import PowerShellRunner
 from app.core.risk_level import RiskLevel
+from app.core.settings import get_settings
 from app.core.scan_session import ScanResult, ScanSession
 from app.gui.widgets.decision_assistant_widget import DecisionAssistantWidget
 from app.gui.widgets.issues_widget import IssuesRecommendationsWidget
@@ -32,6 +34,27 @@ def _module_status(issues, module: str) -> str:
     if not relevant:
         return "ok"
     return "critical" if max(i.severity for i in relevant) >= RiskLevel.HIGH else "warning"
+
+
+def _smb_detail(report) -> str:
+    smb = report.smb
+    if not smb:
+        return "Not scanned"
+    if smb.server_config:
+        if smb.server_config.smb1_enabled is True:
+            return "SMB1 active (risk)"
+        if smb.server_config.smb1_enabled is False:
+            return "SMB v2/v3 enabled"
+    return "SMB config scanned"
+
+
+def _services_detail(report) -> str:
+    svc = report.services
+    if not svc:
+        return "Not scanned"
+    total = len(svc.services)
+    running = sum(1 for s in svc.services if s.status == "Running")
+    return f"{running} / {total} running"
 
 
 def _build_timeline_events(result: ScanResult) -> list[TimelineEvent]:
@@ -88,20 +111,27 @@ class DashboardPage(QWidget):
     """Dashboard with real scan data from Faza 11 onwards."""
 
     open_fix_center = Signal()
+    open_topology = Signal()
+    scan_completed = Signal(object)  # emits ScanResult after every successful scan
 
     def __init__(self) -> None:
         super().__init__()
         self._runner = PowerShellRunner()
         self._setup_ui()
+        if get_settings().auto_scan_on_startup:
+            from PySide6.QtCore import QTimer
+            QTimer.singleShot(300, self._run_scan)
 
     def _setup_ui(self) -> None:
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
-        outer.setSpacing(8)
+        outer.setSpacing(0)
 
-        # ── Header ─────────────────────────────────────────────────────────
+        # ── Fixed header (outside scroll) ────────────────────────────────────
         header = QFrame()
         header.setObjectName("PanelCard")
+        header.setStyleSheet("QFrame#PanelCard { border-radius: 0; border-left: none;"
+                             " border-right: none; border-top: none; }")
         h_layout = QHBoxLayout(header)
         h_layout.setContentsMargins(16, 10, 16, 10)
 
@@ -113,6 +143,7 @@ class DashboardPage(QWidget):
         self._status_label = QLabel("Not scanned yet")
         self._status_label.setStyleSheet("color: #9aa4b2;")
         h_layout.addWidget(self._status_label)
+        h_layout.addSpacing(12)
 
         self._scan_btn = QPushButton("▶ Run Diagnostics")
         self._scan_btn.clicked.connect(self._run_scan)
@@ -120,56 +151,75 @@ class DashboardPage(QWidget):
 
         outer.addWidget(header)
 
-        # ── Status cards ────────────────────────────────────────────────────
+        # ── Scrollable content area ──────────────────────────────────────────
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+
+        content = QWidget()
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(12, 10, 12, 10)
+        content_layout.setSpacing(10)
+        content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        # Status cards
         cards_row = QHBoxLayout()
-        self._card_network  = StatusCard("Network",   "—",  "neutral")
-        self._card_smb      = StatusCard("SMB",       "—",  "neutral")
-        self._card_services = StatusCard("Services",  "—",  "neutral")
-        self._card_printers = StatusCard("Printers",  "—",  "neutral")
-        self._card_issues   = StatusCard("Issues",    "0",  "ok")
-        self._card_firewall = StatusCard("Firewall",  "—",  "neutral")
+        cards_row.setSpacing(8)
+        self._card_network  = StatusCard("Network",       "—", "neutral")
+        self._card_smb      = StatusCard("Sharing / SMB", "—", "neutral")
+        self._card_firewall = StatusCard("Firewall",      "—", "neutral")
+        self._card_services = StatusCard("Services",      "—", "neutral")
+        self._card_printers = StatusCard("Printers",      "—", "neutral")
+        self._card_issues   = StatusCard("Issues",        "0", "ok")
         for card in (
-            self._card_network, self._card_smb, self._card_services,
-            self._card_printers, self._card_issues, self._card_firewall,
+            self._card_network, self._card_smb, self._card_firewall,
+            self._card_services, self._card_printers, self._card_issues,
         ):
             cards_row.addWidget(card)
-        outer.addLayout(cards_row)
+        content_layout.addLayout(cards_row)
 
-        # ── Info row ────────────────────────────────────────────────────────
+        # Info row — sys_info:recent_scan:issues_col = 5:5:4
         info_row = QHBoxLayout()
         info_row.setSpacing(8)
 
         self._sys_info_widget = SystemInfoWidget()
-        info_row.addWidget(self._sys_info_widget)
+        info_row.addWidget(self._sys_info_widget, stretch=5)
 
         self._recent_scan_widget = RecentScanWidget()
-        info_row.addWidget(self._recent_scan_widget)
+        info_row.addWidget(self._recent_scan_widget, stretch=5)
 
         issues_col = QVBoxLayout()
         issues_col.setSpacing(8)
         self._issues_widget = IssuesRecommendationsWidget()
+        self._issues_widget.open_fix_center.connect(self.open_fix_center)
         self._quick_actions_widget = QuickActionsWidget()
         self._quick_actions_widget.open_fix_center.connect(self.open_fix_center)
-        issues_col.addWidget(self._issues_widget)
-        issues_col.addWidget(self._quick_actions_widget)
-        info_row.addLayout(issues_col)
+        issues_col.addWidget(self._issues_widget, stretch=1)
+        issues_col.addWidget(self._quick_actions_widget, stretch=1)
+        info_row.addLayout(issues_col, stretch=4)
 
-        outer.addLayout(info_row)
+        content_layout.addLayout(info_row)
 
-        # ── Topology (stays dummy until Faza 12) ────────────────────────────
-        outer.addWidget(NetworkTopologyWidget())
+        # Topology
+        self._topology_widget = NetworkTopologyWidget()
+        self._topology_widget.open_topology.connect(self.open_topology)
+        content_layout.addWidget(self._topology_widget)
 
-        # ── Timeline row ────────────────────────────────────────────────────
+        # Timeline + Decision Assistant
         timeline_row = QHBoxLayout()
         timeline_row.setSpacing(8)
         self._timeline_widget = ActivityTimelineWidget()
         timeline_row.addWidget(self._timeline_widget, stretch=6)
         timeline_row.addWidget(DecisionAssistantWidget(), stretch=4)
-        outer.addLayout(timeline_row)
+        content_layout.addLayout(timeline_row)
 
-        outer.addStretch(1)
+        scroll.setWidget(content)
+        outer.addWidget(scroll, stretch=1)
 
     # ── Scan ────────────────────────────────────────────────────────────────
+
+    def run_scan(self) -> None:
+        self._run_scan()
 
     def _run_scan(self) -> None:
         self._scan_btn.setEnabled(False)
@@ -189,32 +239,52 @@ class DashboardPage(QWidget):
         issues = result.issues
         report = result.report
 
-        # Status cards
+        # Status cards — with detail text matching mockup
+        net_status = _module_status(issues, "network")
+        net_profile = (report.network.profiles[0].category if report.network and
+                       report.network.profiles else "")
+        net_detail = f"{net_profile} network" if net_profile else "Network scanned"
         self._card_network.update(
-            "OK" if not any(i.related_module == "network" for i in issues) else
-            ("ERROR" if _module_status(issues, "network") == "critical" else "WARN"),
-            _module_status(issues, "network"),
+            "OK" if net_status == "ok" else ("ERROR" if net_status == "critical" else "WARN"),
+            net_status,
+            net_detail,
         )
+
+        smb_status = _module_status(issues, "smb")
+        smb_detail = _smb_detail(report)
         self._card_smb.update(
-            "OK" if _module_status(issues, "smb") == "ok" else
-            ("ERROR" if _module_status(issues, "smb") == "critical" else "WARN"),
-            _module_status(issues, "smb"),
+            "OK" if smb_status == "ok" else ("ERROR" if smb_status == "critical" else "WARN"),
+            smb_status,
+            smb_detail,
         )
+
+        # Firewall: not scanned separately in Dashboard run
+        fw_issues = [i for i in issues if i.related_module == "firewall"]
+        if fw_issues:
+            fw_status = "critical" if any(i.severity >= RiskLevel.HIGH for i in fw_issues) else "warning"
+            self._card_firewall.update("WARN", fw_status, f"{len(fw_issues)} issue(s) detected")
+        else:
+            self._card_firewall.update("—", "neutral", "Not scanned")
+
+        svc_status = _module_status(issues, "services")
+        svc_detail = _services_detail(report)
         self._card_services.update(
-            "OK" if _module_status(issues, "services") == "ok" else
-            ("ERROR" if _module_status(issues, "services") == "critical" else "WARN"),
-            _module_status(issues, "services"),
+            "OK" if svc_status == "ok" else ("ERROR" if svc_status == "critical" else "WARN"),
+            svc_status,
+            svc_detail,
         )
+
         printer_count = len(report.printers.printers) if report.printers else 0
-        self._card_printers.update(str(printer_count), "ok")
+        printer_detail = "Printers found" if printer_count else "No printers found"
+        self._card_printers.update(str(printer_count), "ok" if printer_count else "neutral", printer_detail)
+
         issue_count = len(issues)
-        self._card_issues.update(
-            str(issue_count),
+        issue_status = (
             "critical" if any(i.severity >= RiskLevel.HIGH for i in issues)
-            else ("warning" if issues else "ok"),
+            else ("warning" if issues else "ok")
         )
-        # Firewall: not scanned in Dashboard run — stays neutral
-        self._card_firewall.update("—", "neutral")
+        issue_detail = "Review required" if issue_count else "All good"
+        self._card_issues.update(str(issue_count), issue_status, issue_detail)
 
         # Widgets
         self._sys_info_widget.update_data(report.network)
@@ -222,6 +292,7 @@ class DashboardPage(QWidget):
         self._issues_widget.update_data(issues)
         self._quick_actions_widget.update_data(issues)
         self._timeline_widget.update_data(_build_timeline_events(result))
+        self._topology_widget.update_data(report.network, report.printers)
 
         ts = result.scanned_at.replace("T", " ")
         self._status_label.setText(f"Last scan: {ts}")
@@ -229,3 +300,4 @@ class DashboardPage(QWidget):
             "color: #f85149;" if any(i.severity >= RiskLevel.HIGH for i in issues)
             else ("color: #d29922;" if issues else "color: #3fb950;")
         )
+        self.scan_completed.emit(result)

@@ -280,7 +280,7 @@ class FirewallPage(QWidget):
         layout = QVBoxLayout(frame)
         layout.setContentsMargins(16, 12, 16, 12)
 
-        title = QLabel(f"⚠ Upozorenja ({len(errors)})")
+        title = QLabel(f"⚠ Warnings ({len(errors)})")
         title.setStyleSheet("font-weight: bold; margin-bottom: 4px;")
         layout.addWidget(title)
 

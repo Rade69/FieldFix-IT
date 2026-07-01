@@ -201,7 +201,7 @@ class ServicesPage(QWidget):
             err_frame.setObjectName("PanelCard")
             e_layout = QVBoxLayout(err_frame)
             e_layout.setContentsMargins(16, 12, 16, 12)
-            title = QLabel(f"⚠ Upozorenja ({len(data.errors)})")
+            title = QLabel(f"⚠ Warnings ({len(data.errors)})")
             title.setStyleSheet("font-weight: bold; margin-bottom: 4px;")
             e_layout.addWidget(title)
             for e in data.errors:

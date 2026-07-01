@@ -1,6 +1,8 @@
-from PySide6.QtWidgets import QApplication, QHBoxLayout, QMainWindow, QStackedWidget, QVBoxLayout, QWidget
+from PySide6.QtGui import QIcon
+from PySide6.QtWidgets import QApplication, QHBoxLayout, QLabel, QMainWindow, QPushButton, QStackedWidget, QVBoxLayout, QWidget
 
 from app.gui.dashboard import DashboardPage
+from app.gui.icons import APP_ICON_ICO
 from app.gui.pages.about_page import AboutPage
 from app.gui.pages.firewall_page import FirewallPage
 from app.gui.pages.fix_center_page import FixCenterPage
@@ -34,7 +36,8 @@ class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("FieldFix IT — Windows IT Diagnostics & Repair Tool")
-        self.setMinimumSize(900, 600)
+        self.setWindowIcon(QIcon(str(APP_ICON_ICO)))
+        self.setMinimumSize(1120, 700)
         self._fit_to_screen()
 
         self.pages = QStackedWidget()
@@ -47,11 +50,16 @@ class MainWindow(QMainWindow):
         self.sidebar = Sidebar([name for name, _ in _PAGES])
         self.sidebar.page_selected.connect(self.pages.setCurrentIndex)
 
-        # Wire Dashboard "Open Fix Center" → navigate to Fix Center page
+        # Wire Dashboard signals → navigate to correct page (also sync sidebar)
+        def _go(idx: int) -> None:
+            self.pages.setCurrentIndex(idx)
+            self.sidebar.setCurrentRow(idx)
+
         _fix_idx = next(i for i, (n, _) in enumerate(_PAGES) if n == "Fix Center")
-        _instances[0].open_fix_center.connect(
-            lambda: self.pages.setCurrentIndex(_fix_idx)
-        )
+        _instances[0].open_fix_center.connect(lambda: _go(_fix_idx))
+
+        _topo_idx = next(i for i, (n, _) in enumerate(_PAGES) if n == "Topology")
+        _instances[0].open_topology.connect(lambda: _go(_topo_idx))
 
         body = QWidget()
         body_layout = QHBoxLayout(body)
@@ -60,22 +68,59 @@ class MainWindow(QMainWindow):
         body_layout.addWidget(self.sidebar)
         body_layout.addWidget(self.pages, stretch=1)
 
+        self._top_bar = TopBar()
+        _instances[0].scan_completed.connect(
+            lambda r: self._top_bar.update_network(r.report.network)
+        )
+        _settings_idx = next(i for i, (n, _) in enumerate(_PAGES) if n == "Settings")
+        self._top_bar.open_settings.connect(lambda: _go(_settings_idx))
+
+        _dash_idx = next(i for i, (n, _) in enumerate(_PAGES) if n == "Dashboard")
+        _dashboard = _instances[_dash_idx]
+        self._top_bar.start_scan.connect(lambda: (_go(_dash_idx), _dashboard.run_scan()))
+
         central = QWidget()
         outer_layout = QVBoxLayout(central)
         outer_layout.setContentsMargins(0, 0, 0, 0)
         outer_layout.setSpacing(0)
-        outer_layout.addWidget(TopBar())
+        outer_layout.addWidget(self._top_bar)
         outer_layout.addWidget(body, stretch=1)
         self.setCentralWidget(central)
 
-        # Scan Mode is always the default — Fix Mode is a manual, later opt-in (see docs/architecture_notes.md).
-        self.statusBar().showMessage("Scan Mode: Read Only")
+        self._setup_status_bar()
+
+    def _setup_status_bar(self) -> None:
+        bar = self.statusBar()
+        # Scan Mode is always default — Fix Mode is a manual opt-in (see docs/architecture_notes.md)
+        mode_lbl = QLabel("🛡 Scan Mode: Read Only")
+        mode_lbl.setStyleSheet("color: #3fb950; font-weight: 600; padding: 0 8px;")
+        bar.addWidget(mode_lbl)
+
+        self._sb_status = QLabel("● Ready")
+        self._sb_status.setStyleSheet("color: #9aa4b2; padding: 0 8px;")
+        bar.addWidget(self._sb_status)
+
+        export_btn = QPushButton("📄 Export Report")
+        export_btn.setStyleSheet(
+            "QPushButton { background: transparent; color: #58a6ff; border: none;"
+            " padding: 2px 8px; font-size: 12px; }"
+            "QPushButton:hover { color: #f0f6fc; }"
+        )
+        bar.addPermanentWidget(export_btn)
+
+        last_report_btn = QPushButton("📋 Open Last Report")
+        last_report_btn.setStyleSheet(
+            "QPushButton { background: transparent; color: #58a6ff; border: none;"
+            " padding: 2px 8px; font-size: 12px; }"
+            "QPushButton:hover { color: #f0f6fc; }"
+        )
+        bar.addPermanentWidget(last_report_btn)
 
     def _fit_to_screen(self) -> None:
         """Size and center the window within the available screen area (excludes taskbar)."""
         screen = QApplication.primaryScreen().availableGeometry()
-        w = min(1280, int(screen.width() * 0.95))
-        h = min(800, int(screen.height() * 0.92))
+        w = min(1360, int(screen.width() * 0.96))
+        h = min(860, int(screen.height() * 0.94))
         self.resize(w, h)
         self.move(
             screen.x() + (screen.width() - w) // 2,

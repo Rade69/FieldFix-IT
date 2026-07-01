@@ -12,6 +12,7 @@ class PrinterInfo:
     status: str = ""          # "Normal", "Error", "Offline", "Paused", etc.
     job_count: int = 0
     is_default: bool = False
+    ip_address: str = ""      # resolved from port; empty for local/USB printers
 
 
 @dataclass(frozen=True)
