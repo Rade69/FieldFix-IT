@@ -80,6 +80,7 @@ class PowerShellRunner:
                 encoding="utf-8",
                 errors="replace",
                 timeout=timeout,
+                creationflags=subprocess.CREATE_NO_WINDOW,
             )
             raw_stdout = proc.stdout
             stderr = proc.stderr

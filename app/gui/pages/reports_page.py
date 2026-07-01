@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.core.powershell_runner import PowerShellRunner
+from app.core.scan_session import ScanResult
 from app.modules.network.scanner import NetworkScanner
 from app.modules.printers.scanner import PrintersScanner
 from app.modules.services.scanner import ServicesScanner
@@ -39,7 +40,15 @@ class ReportsPage(QWidget):
         self._runner = PowerShellRunner()
         self._last_report: str = ""
         self._last_ext: str = ".txt"
+        self._last_scan_result: ScanResult | None = None
         self._setup_ui()
+
+    def set_last_result(self, result: ScanResult) -> None:
+        """Called by MainWindow when Dashboard scan completes."""
+        self._last_scan_result = result
+        self._rb_use_last.setEnabled(True)
+        ts = result.scanned_at.replace("T", " ")
+        self._rb_use_last.setText(f"Use last Dashboard scan  ({ts})")
 
     def _setup_ui(self) -> None:
         outer = QVBoxLayout(self)
@@ -69,6 +78,20 @@ class ReportsPage(QWidget):
         opts_layout = QHBoxLayout(opts_frame)
         opts_layout.setContentsMargins(16, 12, 16, 12)
         opts_layout.setSpacing(32)
+
+        # Source selection
+        src_col = QVBoxLayout()
+        src_col.setSpacing(4)
+        src_col.addWidget(QLabel("Data source:"))
+        self._rb_fresh = QRadioButton("Fresh scan")
+        self._rb_fresh.setChecked(True)
+        self._rb_fresh.toggled.connect(self._on_source_toggled)
+        self._rb_use_last = QRadioButton("Use last Dashboard scan")
+        self._rb_use_last.setEnabled(False)
+        src_col.addWidget(self._rb_fresh)
+        src_col.addWidget(self._rb_use_last)
+        src_col.addStretch(1)
+        opts_layout.addLayout(src_col)
 
         # Sections
         sections_col = QVBoxLayout()
@@ -138,12 +161,38 @@ class ReportsPage(QWidget):
         )
         outer.addWidget(self._preview, stretch=1)
 
+    def _on_source_toggled(self, fresh: bool) -> None:
+        for cb in (self._cb_network, self._cb_smb, self._cb_services, self._cb_printers):
+            cb.setEnabled(fresh)
+        self._ip_input.setEnabled(fresh)
+
     # ── Actions ─────────────────────────────────────────────────────────────
 
     def _generate(self) -> None:
         self._gen_btn.setEnabled(False)
         self._save_btn.setEnabled(False)
         self._preview.setPlainText("")
+
+        if self._rb_use_last.isChecked() and self._last_scan_result is not None:
+            from app.core.decision_engine import DecisionEngine
+            report = self._last_scan_result.report
+            issues = tuple(self._last_scan_result.issues)
+            fmt = self._selected_format()
+            if fmt == "JSON":
+                text = write_json(report, issues)
+            elif fmt == "HTML":
+                text = write_html(report, issues)
+            else:
+                text = write_markdown(report, issues)
+            self._last_report = text
+            self._last_ext = _FORMAT_EXT[fmt]
+            self._preview.setPlainText(text)
+            self._gen_btn.setEnabled(True)
+            self._save_btn.setEnabled(True)
+            self._status_label.setText("Generated (last scan)")
+            self._status_label.setStyleSheet("color: #3fb950;")
+            return
+
         self._status_label.setText("Scanning…")
         self._status_label.setStyleSheet("color: #d29922;")
 

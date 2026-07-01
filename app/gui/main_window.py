@@ -69,9 +69,29 @@ class MainWindow(QMainWindow):
         body_layout.addWidget(self.pages, stretch=1)
 
         self._top_bar = TopBar()
-        _instances[0].scan_completed.connect(
-            lambda r: self._top_bar.update_network(r.report.network)
-        )
+        def _push_scan(r) -> None:
+            ts = r.scanned_at
+            net = r.report.network
+            prn = r.report.printers
+            smb = r.report.smb
+            svc = r.report.services
+            if net:
+                _instances[_idx("Network")].load_data(net, ts)
+            if prn:
+                _instances[_idx("Printers")].load_data(prn, ts)
+            if smb:
+                _instances[_idx("Sharing / SMB")].load_data(smb, ts)
+            if svc:
+                _instances[_idx("Services")].load_data(svc, ts)
+            if net and prn:
+                _instances[_idx("Topology")].load_data(net, prn, ts)
+            _instances[_idx("Reports")].set_last_result(r)
+            self._top_bar.update_network(net)
+
+        def _idx(name: str) -> int:
+            return next(i for i, (n, _) in enumerate(_PAGES) if n == name)
+
+        _instances[0].scan_completed.connect(_push_scan)
         _settings_idx = next(i for i, (n, _) in enumerate(_PAGES) if n == "Settings")
         self._top_bar.open_settings.connect(lambda: _go(_settings_idx))
 

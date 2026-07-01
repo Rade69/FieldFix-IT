@@ -37,6 +37,7 @@ class FixAction:
     risk_level: RiskLevel
     requires_admin: bool
     ps_command: str
+    check_cmd: str = ""
 
 
 _AVAILABLE_FIXES: tuple[FixAction, ...] = (
@@ -55,6 +56,7 @@ _AVAILABLE_FIXES: tuple[FixAction, ...] = (
             "Where-Object {$_.NetworkCategory -eq 'Public'} | "
             "Set-NetConnectionProfile -NetworkCategory Private"
         ),
+        check_cmd="(Get-NetConnectionProfile | Where {$_.NetworkCategory -eq 'Private'}).Count -gt 0",
     ),
     FixAction(
         id="ENABLE_NETWORK_DISCOVERY",
@@ -67,6 +69,7 @@ _AVAILABLE_FIXES: tuple[FixAction, ...] = (
         risk_level=RiskLevel.LOW,
         requires_admin=True,
         ps_command='netsh advfirewall firewall set rule group="network discovery" new enable=Yes',
+        check_cmd='(netsh advfirewall firewall show rule name="Network Discovery" | Select-String "Enabled:\\s+Yes").Count -gt 0',
     ),
     FixAction(
         id="ENABLE_FILE_PRINTER_SHARING",
@@ -79,6 +82,7 @@ _AVAILABLE_FIXES: tuple[FixAction, ...] = (
         risk_level=RiskLevel.LOW,
         requires_admin=True,
         ps_command='netsh advfirewall firewall set rule group="file and printer sharing" new enable=Yes',
+        check_cmd='(netsh advfirewall firewall show rule name="File and Printer Sharing" | Select-String "Enabled:\\s+Yes").Count -gt 0',
     ),
     FixAction(
         id="START_PRINT_SPOOLER",
@@ -91,6 +95,7 @@ _AVAILABLE_FIXES: tuple[FixAction, ...] = (
         risk_level=RiskLevel.LOW,
         requires_admin=True,
         ps_command="Start-Service Spooler -ErrorAction Stop; Set-Service Spooler -StartupType Automatic",
+        check_cmd="(Get-Service Spooler).Status -eq 'Running'",
     ),
     FixAction(
         id="START_FDRESPUB",
@@ -103,6 +108,7 @@ _AVAILABLE_FIXES: tuple[FixAction, ...] = (
         risk_level=RiskLevel.LOW,
         requires_admin=True,
         ps_command="Start-Service FDResPub -ErrorAction Stop",
+        check_cmd="(Get-Service FDResPub).Status -eq 'Running'",
     ),
 )
 
@@ -186,6 +192,19 @@ class _FixActionCard(QFrame):
             )
         action_row.addWidget(self._apply_btn)
         outer.addLayout(action_row)
+        self._apply_current_status()
+
+    def _apply_current_status(self) -> None:
+        if not self._action.check_cmd:
+            return
+        result = self._runner.run(self._action.check_cmd, timeout=10)
+        is_active = result.succeeded and result.stdout.strip().lower() == "true"
+        if not is_active:
+            return
+        self._result_label.setText("✓ Already active")
+        self._result_label.setStyleSheet("font-size: 11px; color: #3fb950; font-weight: bold;")
+        self._result_label.show()
+        self._apply_btn.hide()
 
     def _on_skip(self) -> None:
         self._result_label.setText("⊘ Skipped")

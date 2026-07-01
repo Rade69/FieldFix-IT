@@ -2,9 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtWidgets import (
-    QApplication,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -107,6 +106,83 @@ def _build_timeline_events(result: ScanResult) -> list[TimelineEvent]:
     return list(reversed(events))
 
 
+def _count_lan_devices(result: ScanResult) -> int:
+    net = result.report.network
+    if not net:
+        return 0
+    local_ips = {ip.ip_address for ip in net.ip_addresses if ip.ip_address}
+    gateway_ips = {gw.next_hop for gw in net.gateways if gw.next_hop}
+    count = 0
+    for entry in net.arp_entries:
+        ip = entry.ip_address
+        if not ip or ":" in ip or ip in local_ips or ip in gateway_ips:
+            continue
+        parts = ip.split(".")
+        try:
+            first = int(parts[0])
+            last = int(parts[-1])
+        except (ValueError, IndexError):
+            continue
+        if first >= 224 or last in (0, 255):
+            continue
+        count += 1
+    return count
+
+
+def _plural(count: int, one: str, many: str) -> str:
+    label = one if count == 1 else many
+    return f"{count} {label}"
+
+
+def _suggest_next_step(result: ScanResult) -> str:
+    if not result.issues:
+        return "No immediate action needed."
+    worst = max(result.issues, key=lambda issue: issue.severity)
+    module = (worst.related_module or "").lower()
+    if module == "firewall":
+        return "Check firewall rules."
+    if module == "printers":
+        return "Check printer status and spooler."
+    if module == "services":
+        return "Check required Windows services."
+    if module == "smb":
+        return "Check SMB sharing and credentials."
+    if module == "network":
+        return "Check gateway and network profile."
+    if worst.recommended_actions:
+        return worst.recommended_actions[0].rstrip(".") + "."
+    return "Review the highest severity issue."
+
+
+def _build_summary(result: ScanResult) -> str:
+    report = result.report
+    gateway_count = len(report.network.gateways) if report.network else 0
+    printer_count = len(report.printers.printers) if report.printers else 0
+    device_count = _count_lan_devices(result)
+    issue_count = len(result.issues)
+    return (
+        "Found: "
+        f"{_plural(gateway_count, 'gateway', 'gateways')}, "
+        f"{_plural(printer_count, 'printer', 'printers')}, "
+        f"{_plural(device_count, 'LAN device', 'LAN devices')}. "
+        f"Issues: {issue_count}. "
+        f"Suggested: {_suggest_next_step(result)}"
+    )
+
+
+class _ScanWorker(QThread):
+    progress = Signal(str)
+    finished = Signal(object)  # ScanResult
+
+    def __init__(self, runner: PowerShellRunner) -> None:
+        super().__init__()
+        self._runner = runner
+
+    def run(self) -> None:
+        result = ScanSession(self._runner).run(on_progress=self.progress.emit)
+        self.finished.emit(result)
+
+
 class DashboardPage(QWidget):
     """Dashboard with real scan data from Faza 11 onwards."""
 
@@ -150,6 +226,19 @@ class DashboardPage(QWidget):
         h_layout.addWidget(self._scan_btn)
 
         outer.addWidget(header)
+
+        self._summary_banner = QFrame()
+        self._summary_banner.setStyleSheet(
+            "QFrame { background: #0a1929; border-bottom: 1px solid #1f6feb; }"
+        )
+        summary_layout = QHBoxLayout(self._summary_banner)
+        summary_layout.setContentsMargins(16, 7, 16, 7)
+        self._summary_label = QLabel("")
+        self._summary_label.setWordWrap(True)
+        self._summary_label.setStyleSheet("color: #8fc7ff; font-size: 12px;")
+        summary_layout.addWidget(self._summary_label)
+        self._summary_banner.hide()
+        outer.addWidget(self._summary_banner)
 
         # ── Scrollable content area ──────────────────────────────────────────
         scroll = QScrollArea()
@@ -222,18 +311,18 @@ class DashboardPage(QWidget):
         self._run_scan()
 
     def _run_scan(self) -> None:
+        if hasattr(self, "_worker") and self._worker.isRunning():
+            return
         self._scan_btn.setEnabled(False)
         self._status_label.setStyleSheet("color: #d29922;")
+        self._worker = _ScanWorker(self._runner)
+        self._worker.progress.connect(self._status_label.setText)
+        self._worker.finished.connect(self._on_scan_finished)
+        self._worker.start()
 
-        def _progress(msg: str) -> None:
-            self._status_label.setText(msg)
-            QApplication.processEvents()
-
-        try:
-            result = ScanSession(self._runner).run(on_progress=_progress)
-            self._update_dashboard(result)
-        finally:
-            self._scan_btn.setEnabled(True)
+    def _on_scan_finished(self, result: ScanResult) -> None:
+        self._update_dashboard(result)
+        self._scan_btn.setEnabled(True)
 
     def _update_dashboard(self, result: ScanResult) -> None:
         issues = result.issues
@@ -293,6 +382,8 @@ class DashboardPage(QWidget):
         self._quick_actions_widget.update_data(issues)
         self._timeline_widget.update_data(_build_timeline_events(result))
         self._topology_widget.update_data(report.network, report.printers)
+        self._summary_label.setText(_build_summary(result))
+        self._summary_banner.show()
 
         ts = result.scanned_at.replace("T", " ")
         self._status_label.setText(f"Last scan: {ts}")

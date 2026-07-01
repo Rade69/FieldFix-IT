@@ -874,6 +874,18 @@ class TopologyPage(QWidget):
         self._tab_map.setChecked(index == 1)
         self._fit_btn.setVisible(index == 1)
 
+    def load_data(self, network: NetworkData, printers: PrintersData, scanned_at: str = "") -> None:
+        """Populate from shared Dashboard scan — no subnet discovery (click Scan Network for that)."""
+        self._network = network
+        self._printers = printers
+        self._inventory.update_data(network, printers, None)
+        self._draw_topology(network, printers)
+        ts = scanned_at[11:19] if len(scanned_at) >= 19 else ""
+        self._status_label.setText(
+            f"From Dashboard scan{f'  {ts}' if ts else ''}  ·  Scan Network for full subnet discovery"
+        )
+        self._status_label.setStyleSheet("color: #9aa4b2;")
+
     # ── Scan ──────────────────────────────────────────────────────────────────
 
     def _run_scan(self) -> None:

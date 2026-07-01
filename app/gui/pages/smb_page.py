@@ -121,6 +121,13 @@ class SmbPage(QWidget):
         scroll.setWidget(self._results_widget)
         outer.addWidget(scroll, stretch=1)
 
+    def load_data(self, data: SmbData, scanned_at: str = "") -> None:
+        """Populate page with data from a shared Dashboard scan (no re-scan)."""
+        self._display_results(data)
+        ts = scanned_at[11:19] if len(scanned_at) >= 19 else ""
+        self._status_label.setText(f"From Dashboard scan{f'  {ts}' if ts else ''}")
+        self._status_label.setStyleSheet("color: #9aa4b2;")
+
     def _run_scan(self) -> None:
         self._scan_btn.setEnabled(False)
         self._status_label.setText("Scanning…")

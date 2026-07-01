@@ -58,6 +58,9 @@ def write_html(report: ScanReport, issues: tuple[Issue, ...] = ()) -> str:
 </tbody></table>"""
     )
 
+    body_parts.append(_client_summary_html(report, issues))
+    body_parts.append("<h2>Technical Details</h2>")
+
     if issues:
         body_parts.append(_issues_html(issues))
 
@@ -79,6 +82,41 @@ def write_html(report: ScanReport, issues: tuple[Issue, ...] = ()) -> str:
 <footer>FieldFix IT — Windows IT Diagnostics Tool &nbsp;|&nbsp; {_e(report.generated_at)}</footer>
 </body>
 </html>"""
+
+
+def _suggested_next_steps(issues: tuple[Issue, ...]) -> list[str]:
+    if not issues:
+        return ["No immediate action needed."]
+    steps: list[str] = []
+    for issue in issues[:3]:
+        if issue.recommended_actions:
+            steps.append(issue.recommended_actions[0])
+        elif issue.likely_cause:
+            steps.append(f"Review: {issue.likely_cause}")
+        else:
+            steps.append(f"Review: {issue.title}")
+    return steps
+
+
+def _client_summary_html(report: ScanReport, issues: tuple[Issue, ...]) -> str:
+    s = "<h2>Client Summary</h2>\n"
+    s += f"<p><strong>Issues found:</strong> {_e(len(issues))}</p>\n"
+    s += "<p><strong>Suggested next steps:</strong></p>\n<ol>\n"
+    for step in _suggested_next_steps(issues):
+        s += f"<li>{_e(step)}</li>\n"
+    s += "</ol>\n"
+
+    printers = report.printers.printers if report.printers else ()
+    if printers:
+        s += "<h3>Printers</h3>\n"
+        s += "<table><thead><tr><th>Name</th><th>Status</th></tr></thead><tbody>\n"
+        for printer in printers:
+            s += f"<tr><td>{_e(printer.name)}</td><td>{_e(printer.status or '—')}</td></tr>\n"
+        s += "</tbody></table>\n"
+    else:
+        s += "<h3>Printers</h3>\n<p><em>No printers found or printer scan was not included.</em></p>\n"
+
+    return s + "<hr>\n"
 
 
 # ── Issues ───────────────────────────────────────────────────────────────────
