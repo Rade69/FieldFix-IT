@@ -53,6 +53,18 @@ class OsFingerprint:
 
 
 @dataclass(frozen=True)
+class DiscoveredDevice:
+    """One host found by active subnet scan."""
+    ip_address: str
+    mac_address: str = ""
+    hostname: str = ""
+    device_type: str = "unknown"  # pc | printer | router | web_device | unknown
+    open_ports: tuple[int, ...] = ()
+    confidence: str = "LOW"
+    detected_by: str = "ping"
+
+
+@dataclass(frozen=True)
 class NetworkData:
     """Snapshot of network state collected by NetworkScanner. All fields read-only."""
 

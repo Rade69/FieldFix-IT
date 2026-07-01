@@ -58,10 +58,10 @@ def _nodes_from_scan(
             "tag_color": "#3fb950" if ok else ("#f85149" if ok is False else "#8b949e"),
         })
 
-    # Network printers (detect IP from port_name)
+    # Network printers — use resolved ip_address, fall back to port_name extraction
     if printers:
         for p in printers.printers:
-            ip = _extract_ip(p.port_name) if p.port_name else None
+            ip = p.ip_address or (_extract_ip(p.port_name) if p.port_name else None)
             if ip and ip not in seen:
                 seen.add(ip)
                 nodes.append({
