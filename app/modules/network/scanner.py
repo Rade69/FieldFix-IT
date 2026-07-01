@@ -9,6 +9,7 @@ from app.modules.network.models import (
     IPAddressInfo,
     NetworkData,
     NetworkProfile,
+    OsFingerprint,
 )
 
 _NETWORK_CATEGORY = {0: "Public", 1: "Private", 3: "DomainAuthenticated"}
@@ -25,9 +26,23 @@ def _as_list(data: object) -> list:
     return []
 
 
-def _format_speed(bps: int | None) -> str | None:
+def _parse_speed(raw: object) -> int | None:
+    """Convert PS Speed value to int bps. PS may return UInt64 as string."""
+    if raw is None:
+        return None
+    try:
+        return int(raw)
+    except (ValueError, TypeError):
+        return None
+
+
+def _format_speed(bps: object) -> str | None:
     if bps is None:
         return None
+    try:
+        bps = int(bps)  # PS may serialize UInt64 as string depending on version
+    except (ValueError, TypeError):
+        return str(bps) or None
     if bps >= 1_000_000_000:
         return f"{bps // 1_000_000_000} Gbps"
     if bps >= 1_000_000:
@@ -56,9 +71,11 @@ class NetworkScanner:
         profiles = self._get_profiles(errors)
         gateway_reachable = self._ping_gateway(gateways, errors)
         arp_entries = self._get_arp_entries(errors)
+        local_os = self._get_local_os(errors)
 
         return NetworkData(
             hostname=hostname,
+            local_os=local_os,
             adapters=tuple(adapters),
             ip_addresses=tuple(ip_addresses),
             gateways=tuple(gateways),
@@ -77,10 +94,38 @@ class NetworkScanner:
         errors.append(f"hostname: {result.stderr or 'failed'}")
         return ""
 
+    def _get_local_os(self, errors: list[str]) -> OsFingerprint | None:
+        cmd = (
+            "Get-CimInstance Win32_OperatingSystem | "
+            "Select-Object Caption, Version, BuildNumber | "
+            "ConvertTo-Json -Compress"
+        )
+        result = self._runner.run_json(cmd, timeout=15)
+        if not result.succeeded or not isinstance(result.parsed_json, dict):
+            errors.append(f"Win32_OperatingSystem: {result.stderr or 'no output'}")
+            return None
+
+        caption = str(result.parsed_json.get("Caption", "")).strip()
+        version = str(result.parsed_json.get("Version", "")).strip()
+        build = str(result.parsed_json.get("BuildNumber", "")).strip()
+        name = caption or "Windows"
+        if version and build:
+            name = f"{name} ({version}, build {build})"
+        elif version:
+            name = f"{name} ({version})"
+        elif build:
+            name = f"{name} (build {build})"
+
+        return OsFingerprint(
+            name=name,
+            confidence="HIGH",
+            detected_by=("local Windows OS query",),
+        )
+
     def _get_adapters(self, errors: list[str]) -> list[AdapterInfo]:
         cmd = (
             "Get-NetAdapter | Where-Object {$_.Status -eq 'Up'} | "
-            "Select-Object Name, InterfaceDescription, Status, LinkSpeed, MacAddress | "
+            "Select-Object Name, InterfaceDescription, Status, Speed, MacAddress | "
             "ConvertTo-Json -Compress"
         )
         result = self._runner.run_json(cmd, timeout=15)
@@ -92,7 +137,7 @@ class NetworkScanner:
                 name=str(item.get("Name", "")),
                 description=str(item.get("InterfaceDescription", "")),
                 status=str(item.get("Status", "")),
-                link_speed_bps=item.get("LinkSpeed"),
+                link_speed_bps=_parse_speed(item.get("Speed")),
                 mac_address=item.get("MacAddress"),
             )
             for item in _as_list(result.parsed_json)

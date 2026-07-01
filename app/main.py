@@ -8,7 +8,21 @@ from app.gui.main_window import MainWindow
 from app.gui.theme import DARK_STYLESHEET
 
 
+def _set_windows_app_id() -> None:
+    if not sys.platform.startswith("win"):
+        return
+    try:
+        import ctypes
+
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+            "FieldFixIT.Diagnostics"
+        )
+    except Exception:
+        pass
+
+
 def main() -> None:
+    _set_windows_app_id()
     app = QApplication(sys.argv)
     app.setApplicationName("FieldFix IT")
     app.setWindowIcon(QIcon(str(APP_ICON_ICO)))

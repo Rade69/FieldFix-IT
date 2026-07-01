@@ -1,7 +1,29 @@
+import re
+import socket
 import time
 
 from app.core.powershell_runner import PowerShellRunner
 from app.modules.printers.models import PrinterInfo, PrintJob, PrintersData
+
+_IP_RE = re.compile(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}")
+
+
+def _resolve_wsd_hostname(display_name: str) -> str:
+    """Try to resolve a WSD printer's display name to an IPv4 address.
+
+    Windows registers WSD device hostnames in its local DNS/mDNS resolver,
+    so the first word of the printer name (e.g. 'CANONABC123', 'EPSONDF0F56')
+    is usually resolvable directly via getaddrinfo().
+    """
+    hostname = display_name.split("(")[0].strip().split()[0] if display_name else ""
+    if not hostname:
+        return ""
+    try:
+        for family, _, _, _, sockaddr in socket.getaddrinfo(hostname, None, socket.AF_INET):
+            return sockaddr[0]
+    except OSError:
+        return ""
+    return ""
 
 
 class PrintersScanner:
@@ -15,7 +37,8 @@ class PrintersScanner:
         errors: list[str] = []
 
         default_name = self._get_default_printer_name(errors)
-        printers = self._get_printers(errors, default_name)
+        port_ip_map = self._resolve_printer_ips(errors)
+        printers = self._get_printers(errors, default_name, port_ip_map)
         jobs = self._get_print_jobs(errors)
 
         return PrintersData(
@@ -27,6 +50,35 @@ class PrintersScanner:
 
     # ------------------------------------------------------------------ private
 
+    def _resolve_printer_ips(self, errors: list[str]) -> dict[str, str]:
+        """Return {port_name: ip_address} for all resolvable printer ports.
+
+        Covers:
+        - Win32_TCPIPPrinterPort (standard IP ports, e.g. IP_192.168.x.x)
+        - MSFT_PrinterPort in root/PrintManagement (WSD and others)
+        - IP embedded in the port name itself as a last resort
+        """
+        cmd = (
+            "$out = @{};"
+            # Standard TCP/IP ports
+            "Get-CimInstance Win32_TCPIPPrinterPort -ErrorAction SilentlyContinue | "
+            "ForEach-Object { if ($_.HostAddress) { $out[$_.Name] = $_.HostAddress } };"
+            # WSD and other ports via root/PrintManagement
+            "Get-CimInstance -Namespace root\\PrintManagement -ClassName MSFT_PrinterPort "
+            "-ErrorAction SilentlyContinue | ForEach-Object {"
+            "  $n = $_.Name; if ($out.ContainsKey($n)) { return };"
+            "  $ha = $_.HostAddress;"
+            "  if ($ha -match '(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3})') { $out[$n] = $Matches[1]; return };"
+            "  $du = $_.DeviceUrl;"
+            "  if ($du -match '(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3})') { $out[$n] = $Matches[1] }"
+            "};"
+            "$out | ConvertTo-Json -Compress"
+        )
+        result = self._runner.run_json(cmd, timeout=15)
+        if result.succeeded and isinstance(result.parsed_json, dict):
+            return {k: str(v) for k, v in result.parsed_json.items() if v}
+        return {}
+
     def _get_default_printer_name(self, errors: list[str]) -> str:
         cmd = (
             "Get-CimInstance -ClassName Win32_Printer "
@@ -36,10 +88,14 @@ class PrintersScanner:
         result = self._runner.run_json(cmd, timeout=15)
         if result.succeeded and isinstance(result.parsed_json, dict):
             return str(result.parsed_json.get("Name", "") or "")
-        # Non-fatal — default printer may not be set
         return ""
 
-    def _get_printers(self, errors: list[str], default_name: str) -> list[PrinterInfo]:
+    def _get_printers(
+        self,
+        errors: list[str],
+        default_name: str,
+        port_ip_map: dict[str, str],
+    ) -> list[PrinterInfo]:
         # ToString() forces string output for PS enum properties (Type, PrinterStatus)
         cmd = (
             "Get-Printer -ErrorAction SilentlyContinue | "
@@ -63,17 +119,28 @@ class PrintersScanner:
             if not isinstance(item, dict):
                 continue
             name = str(item.get("Name", ""))
+            port_name = str(item.get("PortName", "") or "")
             shared = item.get("Shared")
+
+            # Resolve IP: port_ip_map → regex in port name → WSD hostname resolution
+            ip = port_ip_map.get(port_name, "")
+            if not ip:
+                m = _IP_RE.search(port_name)
+                ip = m.group(0) if m else ""
+            if not ip and port_name.startswith("WSD-"):
+                ip = _resolve_wsd_hostname(name)
+
             printers.append(PrinterInfo(
                 name=name,
                 driver_name=str(item.get("DriverName", "") or ""),
-                port_name=str(item.get("PortName", "") or ""),
+                port_name=port_name,
                 printer_type=str(item.get("PrinterType", "") or ""),
                 shared=bool(shared) if isinstance(shared, bool) else None,
                 share_name=str(item.get("ShareName", "") or ""),
                 status=str(item.get("PrinterStatus", "") or ""),
                 job_count=int(item.get("JobCount") or 0),
                 is_default=(name == default_name) if default_name else False,
+                ip_address=ip,
             ))
         return printers
 
@@ -87,7 +154,6 @@ class PrintersScanner:
         )
         result = self._runner.run_json(cmd, timeout=20)
         if not result.succeeded or result.parsed_json is None:
-            # No jobs is normal — don't add to errors unless there was a real failure
             if result.stderr:
                 errors.append(f"Get-PrintJob: {result.stderr}")
             return []

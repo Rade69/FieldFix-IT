@@ -1,7 +1,12 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
+
+_ROW_STYLE = (
+    "QFrame#IssueRow { border-radius: 6px; padding: 2px; }"
+    "QFrame#IssueRow:hover { background-color: #101f2e; }"
+)
 
 from app.core.issue import Issue
 from app.core.risk_level import RiskLevel
@@ -14,25 +19,38 @@ _SEVERITY_COLOR = {
 }
 
 
-def _build_row(color: str, title: str, description: str) -> QHBoxLayout:
-    row = QHBoxLayout()
+def _build_row(color: str, title: str, description: str) -> QFrame:
+    wrapper = QFrame()
+    wrapper.setObjectName("IssueRow")
+    wrapper.setStyleSheet(_ROW_STYLE)
+
+    row = QHBoxLayout(wrapper)
+    row.setContentsMargins(4, 4, 4, 4)
+    row.setSpacing(8)
+
     dot = QLabel("●")
-    dot.setStyleSheet(f"color: {color};")
-    dot.setAlignment(Qt.AlignmentFlag.AlignTop)
+    dot.setStyleSheet(f"color: {color}; font-size: 10px;")
+    dot.setFixedWidth(14)
+    dot.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
 
     text_col = QVBoxLayout()
-    text_col.setSpacing(2)
+    text_col.setSpacing(1)
     t = QLabel(title)
-    t.setStyleSheet("font-weight: bold;")
+    t.setStyleSheet("font-weight: 600; font-size: 12px;")
     d = QLabel(description)
-    d.setStyleSheet("color: #9aa4b2;")
+    d.setStyleSheet("color: #9aa4b2; font-size: 11px;")
     d.setWordWrap(True)
     text_col.addWidget(t)
     text_col.addWidget(d)
 
+    chevron = QLabel("›")
+    chevron.setStyleSheet("color: #4b5566; font-size: 16px;")
+    chevron.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+
     row.addWidget(dot)
-    row.addLayout(text_col)
-    return row
+    row.addLayout(text_col, stretch=1)
+    row.addWidget(chevron)
+    return wrapper
 
 
 def _clear_layout(layout) -> None:
@@ -47,6 +65,8 @@ def _clear_layout(layout) -> None:
 class IssuesRecommendationsWidget(QFrame):
     """Issues & Recommendations panel. Populated by update_data() after scan."""
 
+    open_fix_center = Signal()
+
     def __init__(self) -> None:
         super().__init__()
         self.setObjectName("PanelCard")
@@ -58,9 +78,16 @@ class IssuesRecommendationsWidget(QFrame):
         self._title_label.setStyleSheet("font-weight: bold; color: #3fb950;")
         header_row.addWidget(self._title_label)
         header_row.addStretch(1)
-        view_all = QLabel("View all")
-        view_all.setStyleSheet("color: #58a6ff;")
-        header_row.addWidget(view_all)
+        view_all_btn = QPushButton("View all")
+        view_all_btn.setFlat(True)
+        view_all_btn.setStyleSheet(
+            "QPushButton { color: #58a6ff; background: transparent; border: none;"
+            " padding: 0; font-size: 12px; }"
+            "QPushButton:hover { color: #79b8ff; text-decoration: underline; }"
+        )
+        view_all_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        view_all_btn.clicked.connect(self.open_fix_center)
+        header_row.addWidget(view_all_btn)
         layout.addLayout(header_row)
 
         self._content = QVBoxLayout()
@@ -89,4 +116,4 @@ class IssuesRecommendationsWidget(QFrame):
         for issue in issues[:6]:  # show top 6 in Dashboard panel
             c = _SEVERITY_COLOR.get(issue.severity, "#9aa4b2")
             desc = issue.likely_cause or (issue.evidence[0] if issue.evidence else "")
-            self._content.addLayout(_build_row(c, issue.title, desc))
+            self._content.addWidget(_build_row(c, issue.title, desc))
