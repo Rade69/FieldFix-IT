@@ -15,6 +15,7 @@ def qapp_instance():
 def test_main_window_builds(qapp_instance):
     window = MainWindow()
     assert window.windowTitle().startswith("FieldFix IT")
+    assert not window.windowIcon().isNull()
     assert window.sidebar.count() == window.pages.count()
 
 

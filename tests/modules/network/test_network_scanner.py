@@ -36,9 +36,9 @@ def _make_scanner(run_return=None, run_json_side=None) -> NetworkScanner:
 
 
 def _all_null_side(n: int, overrides: dict[int, object] | None = None) -> list:
-    """n run_json calls all returning empty; overrides[i] replaces call i."""
+    """n network run_json calls plus local OS query; overrides[i] replaces call i."""
     overrides = overrides or {}
-    return [overrides.get(i, _json_fail()) for i in range(n)]
+    return [overrides.get(i, _json_fail()) for i in range(n + 1)]
 
 
 # --------------------------------------------------------------------------- helpers unit tests
@@ -106,6 +106,32 @@ class TestHostname:
         scanner = _make_scanner(run_return=_run_fail("Access denied"))
         data = scanner.scan()
         assert any("hostname" in e for e in data.errors)
+
+
+class TestLocalOs:
+    _OS = {
+        "Caption": "Microsoft Windows 11 Pro",
+        "Version": "10.0.22631",
+        "BuildNumber": "22631",
+    }
+
+    def test_local_os_populated(self):
+        scanner = _make_scanner(run_json_side=_all_null_side(6, {6: _json_ok(self._OS)}))
+
+        data = scanner.scan()
+
+        assert data.local_os is not None
+        assert data.local_os.name == "Microsoft Windows 11 Pro (10.0.22631, build 22631)"
+        assert data.local_os.confidence == "HIGH"
+        assert data.local_os.detected_by == ("local Windows OS query",)
+
+    def test_local_os_failure_adds_error(self):
+        scanner = _make_scanner(run_json_side=_all_null_side(6))
+
+        data = scanner.scan()
+
+        assert data.local_os is None
+        assert any("Win32_OperatingSystem" in e for e in data.errors)
 
 
 class TestAdapters:

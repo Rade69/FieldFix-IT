@@ -1,6 +1,8 @@
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QHBoxLayout, QLabel, QMainWindow, QPushButton, QStackedWidget, QVBoxLayout, QWidget
 
 from app.gui.dashboard import DashboardPage
+from app.gui.icons import APP_ICON_ICO
 from app.gui.pages.about_page import AboutPage
 from app.gui.pages.firewall_page import FirewallPage
 from app.gui.pages.fix_center_page import FixCenterPage
@@ -34,6 +36,7 @@ class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("FieldFix IT — Windows IT Diagnostics & Repair Tool")
+        self.setWindowIcon(QIcon(str(APP_ICON_ICO)))
         self.setMinimumSize(1120, 700)
         self._fit_to_screen()
 

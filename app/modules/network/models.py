@@ -46,10 +46,18 @@ class ArpEntry:
 
 
 @dataclass(frozen=True)
+class OsFingerprint:
+    name: str
+    confidence: str = "LOW"
+    detected_by: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class NetworkData:
     """Snapshot of network state collected by NetworkScanner. All fields read-only."""
 
     hostname: str = ""
+    local_os: OsFingerprint | None = None
     adapters: tuple[AdapterInfo, ...] = ()
     ip_addresses: tuple[IPAddressInfo, ...] = ()
     gateways: tuple[GatewayInfo, ...] = ()

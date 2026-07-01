@@ -26,7 +26,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.core.powershell_runner import PowerShellRunner
-from app.modules.network.models import NetworkData
+from app.modules.network.models import NetworkData, OsFingerprint
 from app.modules.network.scanner import NetworkScanner
 from app.modules.printers.models import PrintersData
 from app.modules.printers.scanner import PrintersScanner
@@ -53,11 +53,11 @@ _NODE_ICONS = {
     "printer": "🖨",
 }
 
-_CARD_W  = 120
-_CARD_H  = 80
+_CARD_W  = 170
+_CARD_H  = 124
 _RADIUS  = 8       # rounded corner radius
-_NODE_V_GAP = 88
-_COL_W  = 220
+_NODE_V_GAP = 136
+_COL_W  = 280
 
 
 # ── pure layout logic (no Qt widgets — testable) ──────────────────────────────
@@ -67,12 +67,20 @@ def build_nodes(network: NetworkData, printers: PrintersData) -> list[dict]:
     local_ips = {ip.ip_address for ip in network.ip_addresses if ip.ip_address}
     local_ip = next(iter(local_ips), "")
     gateway_ip = network.gateways[0].next_hop if network.gateways else ""
+    local_os = network.local_os or OsFingerprint(
+        name="Windows",
+        confidence="MEDIUM",
+        detected_by=("local app platform",),
+    )
 
     nodes: list[dict] = [{
         "id": "pc",
         "label": network.hostname or "This PC",
         "sublabel": local_ip,
         "node_type": "pc",
+        "os": local_os.name,
+        "confidence": local_os.confidence,
+        "detected_by": " + ".join(local_os.detected_by),
     }]
 
     if gateway_ip:
@@ -81,6 +89,9 @@ def build_nodes(network: NetworkData, printers: PrintersData) -> list[dict]:
             "label": "Gateway",
             "sublabel": gateway_ip,
             "node_type": "gateway",
+            "os": "Network gateway / router",
+            "confidence": "MEDIUM",
+            "detected_by": "default route",
         })
 
     for entry in network.arp_entries:
@@ -95,6 +106,9 @@ def build_nodes(network: NetworkData, printers: PrintersData) -> list[dict]:
             "label": entry.ip_address,
             "sublabel": entry.mac_address,
             "node_type": "device",
+            "os": "Unknown",
+            "confidence": "LOW",
+            "detected_by": "ARP table only",
         })
 
     printer_count = 0
@@ -106,6 +120,9 @@ def build_nodes(network: NetworkData, printers: PrintersData) -> list[dict]:
             "label": printer.name[:14] if printer.name else "Printer",
             "sublabel": "★ Default" if printer.is_default else (printer.printer_type or "Printer"),
             "node_type": "printer",
+            "os": "Printer firmware",
+            "confidence": "MEDIUM",
+            "detected_by": "Windows printer inventory",
         })
         printer_count += 1
         if printer_count >= 4:
@@ -188,7 +205,7 @@ def _add_node(scene: QGraphicsScene, pos: tuple[float, float], node: dict) -> No
     label_item.setFont(QFont("Segoe UI", 8, QFont.Weight.Bold))
     label_item.setDefaultTextColor(QColor("#f0f6fc"))
     label_item.setTextWidth(_CARD_W - 8)
-    label_item.setPos(x + 4, cy - 4)
+    label_item.setPos(x + 6, y + 32)
     label_item.setZValue(2)
     scene.addItem(label_item)
 
@@ -198,10 +215,23 @@ def _add_node(scene: QGraphicsScene, pos: tuple[float, float], node: dict) -> No
         sub_item = QGraphicsTextItem(sub_text)
         sub_item.setFont(QFont("Segoe UI", 7))
         sub_item.setDefaultTextColor(QColor("#9aa4b2"))
-        sub_item.setTextWidth(_CARD_W - 8)
-        sub_item.setPos(x + 4, cy + 10)
+        sub_item.setTextWidth(_CARD_W - 12)
+        sub_item.setPos(x + 6, y + 48)
         sub_item.setZValue(2)
         scene.addItem(sub_item)
+
+    detail_lines = [
+        f"OS: {node.get('os', 'Unknown')}",
+        f"Confidence: {node.get('confidence', 'LOW')}",
+        f"Detected by: {node.get('detected_by', 'insufficient signals')}",
+    ]
+    detail_item = QGraphicsTextItem("\n".join(detail_lines))
+    detail_item.setFont(QFont("Segoe UI", 6))
+    detail_item.setDefaultTextColor(QColor("#c9d1d9"))
+    detail_item.setTextWidth(_CARD_W - 12)
+    detail_item.setPos(x + 6, y + 66)
+    detail_item.setZValue(2)
+    scene.addItem(detail_item)
 
 
 def _arrowhead(
