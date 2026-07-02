@@ -953,6 +953,7 @@ class ScenariosPage(QWidget):
         self._worker: _ScenarioWorker | None = None
         self._active_scenario: Scenario | None = None
         self._last_result: ScanResult | None = None
+        self._pending_printer_name: str = ""
 
         self._build_ui()
         self._select_scenario(ALL_SCENARIOS[0])
@@ -1178,6 +1179,10 @@ class ScenariosPage(QWidget):
             self._printer_selector.show()
             self._printer_fix_panel.hide()
 
+            if self._pending_printer_name:
+                self._on_fix_printer_selected(self._pending_printer_name)
+                self._pending_printer_name = ""
+
         else:
             self._discovery_panel.hide()
             self._install_panel.hide()
@@ -1215,6 +1220,13 @@ class ScenariosPage(QWidget):
         job_count = printer.job_count if printer else 0
         self._printer_fix_panel.configure(printer_name, job_count)
         self._printer_fix_panel.show()
+
+    def prepare_fix_printer(self, printer_name: str) -> None:
+        """Navigate to Fix Printer scenario and auto-run diagnostic for the given printer."""
+        fix_scen = next(s for s in ALL_SCENARIOS if s.id == "fix_printer_problems")
+        self._select_scenario(fix_scen)
+        self._pending_printer_name = printer_name
+        self._run_diagnostic()
 
     def _on_go_to_fix(self, _fix_id: str) -> None:
         self.open_fix_center.emit()

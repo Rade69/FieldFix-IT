@@ -63,6 +63,12 @@ class MainWindow(QMainWindow):
         _scen_idx = next(i for i, (n, _) in enumerate(_PAGES) if n == "Scenarios")
         _instances[_scen_idx].open_fix_center.connect(lambda: _go(_fix_idx))
 
+        _prn_idx = next(i for i, (n, _) in enumerate(_PAGES) if n == "Printers")
+        _scen_inst = _instances[_scen_idx]
+        _instances[_prn_idx].fix_printer_requested.connect(
+            lambda name: (_go(_scen_idx), _scen_inst.prepare_fix_printer(name))
+        )
+
         _topo_idx = next(i for i, (n, _) in enumerate(_PAGES) if n == "Topology")
         _instances[0].open_topology.connect(lambda: _go(_topo_idx))
 

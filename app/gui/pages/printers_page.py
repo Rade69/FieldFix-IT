@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -55,6 +55,8 @@ def _panel(title: str) -> tuple[QFrame, QVBoxLayout]:
 
 class PrintersPage(QWidget):
     """Printers diagnostics page. Shows installed printers and pending print jobs."""
+
+    fix_printer_requested = Signal(str)   # printer name
 
     def __init__(self) -> None:
         super().__init__()
@@ -201,6 +203,21 @@ class PrintersPage(QWidget):
                 detail_lbl = QLabel(f"{p.driver_name}  |  {p.port_name}")
                 detail_lbl.setStyleSheet("color: #9aa4b2; font-size: 11px;")
                 prow.addWidget(detail_lbl, stretch=1)
+
+                # Fix button for printers with problems
+                has_problem = p.status not in _STATUS_OK or p.job_count > 0
+                if has_problem:
+                    fix_btn = QPushButton("🔧 Fix")
+                    fix_btn.setFixedWidth(65)
+                    fix_btn.setStyleSheet(
+                        "QPushButton { background: #b45309; color: white; border-radius: 4px;"
+                        " padding: 3px 8px; font-size: 11px; font-weight: bold; }"
+                        "QPushButton:hover { background: #d97706; }"
+                    )
+                    fix_btn.setToolTip(f"Open Fix Printer scenario for: {p.name}")
+                    name = p.name
+                    fix_btn.clicked.connect(lambda _=False, n=name: self.fix_printer_requested.emit(n))
+                    prow.addWidget(fix_btn)
 
                 layout.addLayout(prow)
 
