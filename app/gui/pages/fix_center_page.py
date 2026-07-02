@@ -140,14 +140,13 @@ class _FixActionCard(QFrame):
         # Description
         desc = QLabel(action.description)
         desc.setWordWrap(True)
-        desc.setStyleSheet("color: #c9d1d9;")
         outer.addWidget(desc)
 
         # Metadata
         meta_row = QHBoxLayout()
         meta_row.addWidget(_muted("What changes:"))
         changes_lbl = QLabel(action.what_it_changes)
-        changes_lbl.setStyleSheet("color: #9aa4b2; font-size: 11px;")
+        changes_lbl.setStyleSheet("color: #6B7280; font-size: 11px;")
         meta_row.addWidget(changes_lbl)
         meta_row.addStretch(1)
         if action.requires_admin:
@@ -183,13 +182,13 @@ class _FixActionCard(QFrame):
             self._apply_btn.setStyleSheet(
                 "QPushButton { background: #238636; color: white; border-radius: 4px; padding: 4px 10px; }"
                 "QPushButton:hover { background: #2ea043; }"
-                "QPushButton:disabled { background: #3d4249; color: #6e7681; }"
+                "QPushButton:disabled { background: #E5E7EB; color: #6B7280; }"
             )
         else:
             self._apply_btn.setEnabled(False)
             self._apply_btn.setToolTip("Restart app as Administrator to apply fixes.")
             self._apply_btn.setStyleSheet(
-                "QPushButton { background: #3d4249; color: #6e7681; border-radius: 4px; padding: 4px 10px; }"
+                "QPushButton { background: #E5E7EB; color: #6B7280; border-radius: 4px; padding: 4px 10px; }"
             )
         action_row.addWidget(self._apply_btn)
         outer.addLayout(action_row)
@@ -210,7 +209,7 @@ class _FixActionCard(QFrame):
 
     def _on_skip(self) -> None:
         self._result_label.setText("⊘ Skipped")
-        self._result_label.setStyleSheet("font-size: 11px; color: #9aa4b2;")
+        self._result_label.setStyleSheet("font-size: 11px; color: #6B7280;")
         self._result_label.show()
         self._apply_btn.setEnabled(False)
         self._skip_btn.setEnabled(False)
@@ -257,7 +256,7 @@ class _FixActionCard(QFrame):
 
 def _muted(text: str) -> QLabel:
     lbl = QLabel(text)
-    lbl.setStyleSheet("color: #8b949e; font-size: 11px;")
+    lbl.setStyleSheet("color: #6B7280; font-size: 11px;")
     return lbl
 
 

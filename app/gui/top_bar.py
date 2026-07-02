@@ -5,11 +5,11 @@ import sys
 from dataclasses import dataclass
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QPixmap
+from PySide6.QtGui import QPainter, QPainterPath, QPixmap
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
 
 from app.core.powershell_runner import PowerShellRunner
-from app.gui.icons import APP_ICON_32
+from app.gui.icons import APP_ICON_128
 from app.modules.network.models import NetworkData
 
 
@@ -26,9 +26,9 @@ class _SysInfo:
 
 
 _CATEGORY_COLOR = {
-    "Private": "#3fb950",
-    "DomainAuthenticated": "#58a6ff",
-    "Public": "#d29922",
+    "Private": "#16A34A",
+    "DomainAuthenticated": "#0EA5E9",
+    "Public": "#F59E0B",
 }
 
 _PS_SYSINFO = r"""
@@ -103,12 +103,12 @@ def _os_display(info: _SysInfo) -> str:
 
 
 def _net_html(name: str, category: str) -> str:
-    cat_color = _CATEGORY_COLOR.get(category, "#9aa4b2")
+    cat_color = _CATEGORY_COLOR.get(category, "#6B7280")
     if not name and not category:
         return "Network: —"
     parts = ["Network:"]
     if name:
-        parts.append(f'<span style="color:#e3b341;">{name}</span>')
+        parts.append(f'<span style="color:#2563EB;">{name}</span>')
     if category:
         parts.append(f'<span style="color:{cat_color};">({category})</span>')
     return " ".join(parts)
@@ -118,8 +118,28 @@ def _rich(html: str, muted: bool = False) -> QLabel:
     lbl = QLabel(html)
     lbl.setTextFormat(Qt.TextFormat.RichText)
     if muted:
-        lbl.setStyleSheet("color: #9aa4b2; font-size: 11px;")
+        lbl.setStyleSheet("color: #6B7280; font-size: 11px;")
     return lbl
+
+
+def _rounded_icon_pixmap(size: int = 48, radius: int = 10) -> QPixmap:
+    source = QPixmap(str(APP_ICON_128)).scaled(
+        size,
+        size,
+        Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+        Qt.TransformationMode.SmoothTransformation,
+    )
+    target = QPixmap(size, size)
+    target.fill(Qt.GlobalColor.transparent)
+
+    painter = QPainter(target)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    clip = QPainterPath()
+    clip.addRoundedRect(0, 0, size, size, radius, radius)
+    painter.setClipPath(clip)
+    painter.drawPixmap(0, 0, source)
+    painter.end()
+    return target
 
 
 class TopBar(QFrame):
@@ -143,11 +163,9 @@ class TopBar(QFrame):
 
         # App icon + title
         icon_label = QLabel()
-        icon_label.setPixmap(QPixmap(str(APP_ICON_32)).scaled(
-            42, 42,
-            Qt.AspectRatioMode.KeepAspectRatio,
-            Qt.TransformationMode.SmoothTransformation,
-        ))
+        icon_label.setFixedSize(48, 48)
+        icon_label.setPixmap(_rounded_icon_pixmap())
+        icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(icon_label)
         layout.addSpacing(10)
 
@@ -157,7 +175,7 @@ class TopBar(QFrame):
         title_row = QHBoxLayout()
         title_row.setSpacing(6)
         title_lbl = QLabel("FieldFix IT")
-        title_lbl.setStyleSheet("font-size: 22px; font-weight: 800; color: #f0f6fc;")
+        title_lbl.setStyleSheet("font-size: 22px; font-weight: 800;")
         title_row.addWidget(title_lbl)
         ver_lbl = QLabel("v1.0.0")
         ver_lbl.setStyleSheet(
@@ -177,7 +195,7 @@ class TopBar(QFrame):
         left_col = QVBoxLayout()
         left_col.setSpacing(2)
         left_col.addWidget(_rich(
-            f"Computer: <span style='color:#58a6ff; font-weight:bold;'>{computer}</span>"
+            f"Computer: <span style='color:#2563EB; font-weight:bold;'>{computer}</span>"
         ))
         self._detail_label = _rich(
             f"{_os_display(info)} &nbsp;&nbsp; User: {user}"
@@ -192,7 +210,7 @@ class TopBar(QFrame):
         right_col = QVBoxLayout()
         right_col.setSpacing(2)
         self._ip_label = _rich(
-            f"IP: <span style='color:#58a6ff; font-weight:bold;'>{info.ip_address or '—'}</span>"
+            f"IP: <span style='color:#2563EB; font-weight:bold;'>{info.ip_address or '—'}</span>"
         )
         right_col.addWidget(self._ip_label)
         self._net_label = _rich(
@@ -210,15 +228,15 @@ class TopBar(QFrame):
         sm_layout.setSpacing(0)
         sm_layout.addWidget(_rich("🛡 Scan Mode", muted=True))
         sm_val = QLabel("Read Only")
-        sm_val.setStyleSheet("color: #3fb950; font-weight: bold;")
+        sm_val.setStyleSheet("color: #16A34A; font-weight: bold;")
         sm_layout.addWidget(sm_val)
         layout.addWidget(scan_mode)
         layout.addSpacing(16)
 
         settings_btn = QPushButton("⚙ Settings")
         settings_btn.setStyleSheet(
-            "QPushButton { background: transparent; color: #9aa4b2; border: none; }"
-            "QPushButton:hover { color: #f0f6fc; }"
+            "QPushButton { background: transparent; color: #6e7781; border: none; }"
+            "QPushButton:hover { color: #2563EB; }"
         )
         settings_btn.clicked.connect(self.open_settings)
         layout.addWidget(settings_btn)
@@ -238,7 +256,7 @@ class TopBar(QFrame):
         )
         if ipv4:
             self._ip_label.setText(
-                f"IP: <span style='color:#58a6ff; font-weight:bold;'>{ipv4}</span>"
+                f"IP: <span style='color:#2563EB; font-weight:bold;'>{ipv4}</span>"
             )
         if network.profiles:
             p = network.profiles[0]

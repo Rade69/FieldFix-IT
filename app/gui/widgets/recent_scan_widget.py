@@ -5,15 +5,15 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout
 from app.reports.models import ScanReport
 
 _STATUS_STYLE = {
-    "ok":   ("✓", "#3fb950"),
-    "fail": ("✕", "#f85149"),
-    "info": ("●", "#a371f7"),
-    "warn": ("⚠", "#d29922"),
+    "ok":   ("✓", "#16A34A"),
+    "fail": ("✕", "#DC2626"),
+    "info": ("●", "#0EA5E9"),
+    "warn": ("⚠", "#F59E0B"),
 }
 
 
 def _row(label: str, value: str, status: str) -> QHBoxLayout:
-    icon, color = _STATUS_STYLE.get(status, ("●", "#9aa4b2"))
+    icon, color = _STATUS_STYLE.get(status, ("●", "#6B7280"))
     r = QHBoxLayout()
     r.addWidget(_styled(icon, f"color: {color}; font-weight: bold;"))
     r.addWidget(QLabel(label))
@@ -119,14 +119,14 @@ class RecentScanWidget(QFrame):
         title.setStyleSheet("font-weight: bold;")
         header_row.addWidget(title)
         header_row.addStretch(1)
-        header_row.addWidget(_styled("⟳", "color: #58a6ff;"))
+        header_row.addWidget(_styled("⟳", "color: #2563EB;"))
         layout.addLayout(header_row)
 
         self._content = QVBoxLayout()
         layout.addLayout(self._content)
 
         self._footer = QLabel("Run a scan to see results.")
-        self._footer.setStyleSheet("color: #9aa4b2; margin-top: 4px;")
+        self._footer.setStyleSheet("color: #6B7280; margin-top: 4px;")
         layout.addWidget(self._footer)
 
         self._show_placeholder()

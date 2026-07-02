@@ -58,7 +58,7 @@ class QuickActionsWidget(QFrame):
 
     def _placeholder(self) -> None:
         lbl = QLabel("Run a scan to see recommended actions.")
-        lbl.setStyleSheet("color: #9aa4b2;")
+        lbl.setStyleSheet("color: #6B7280;")
         self._content.addWidget(lbl)
 
     def _build_row(self, issue: Issue) -> QHBoxLayout:

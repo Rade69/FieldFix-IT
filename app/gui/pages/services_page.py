@@ -19,18 +19,18 @@ _STATUS_COLOR = {
     "StartPending":  "#d29922",
     "StopPending":   "#d29922",
     "Paused":        "#d29922",
-    "NotFound":      "#9aa4b2",
+    "NotFound":      "#6B7280",
 }
 
 _START_TYPE_COLOR = {
     "Automatic":     "#3fb950",
-    "Manual":        "#9aa4b2",
+    "Manual":        "#6B7280",
     "Disabled":      "#f85149",
 }
 
 
 def _status_label(status: str) -> QLabel:
-    color = _STATUS_COLOR.get(status, "#9aa4b2")
+    color = _STATUS_COLOR.get(status, "#6B7280")
     icon = "✓" if status == "Running" else ("✕" if status == "Stopped" else "●")
     label = QLabel(f"{icon} {status}")
     label.setStyleSheet(f"color: {color}; font-weight: bold;")
@@ -133,8 +133,8 @@ class ServicesPage(QWidget):
 
         for text, color in [
             (f"✓ Running: {running}", "#3fb950"),
-            (f"✕ Stopped: {stopped}", "#f85149" if stopped > 0 else "#9aa4b2"),
-            (f"Total monitored: {total}", "#9aa4b2"),
+            (f"✕ Stopped: {stopped}", "#f85149" if stopped > 0 else "#6B7280"),
+            (f"Total monitored: {total}", "#6B7280"),
         ]:
             lbl = QLabel(text)
             lbl.setStyleSheet(f"color: {color}; font-weight: bold; margin-right: 24px;")
@@ -187,7 +187,7 @@ class ServicesPage(QWidget):
             spacer.setFixedWidth(120 - 90)
             row.addWidget(spacer)
 
-            st_color = _START_TYPE_COLOR.get(svc.start_type, "#9aa4b2")
+            st_color = _START_TYPE_COLOR.get(svc.start_type, "#6B7280")
             st_lbl = QLabel(svc.start_type or "—")
             st_lbl.setFixedWidth(100)
             st_lbl.setStyleSheet(f"color: {st_color};")

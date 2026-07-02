@@ -11,7 +11,7 @@ def info_banner(message: str, hint: str = "", level: str = "info") -> QFrame:
     """
     _color = {"info": "#1f6feb", "warning": "#d29922", "error": "#f85149"}
     _icon  = {"info": "ℹ", "warning": "⚠", "error": "✕"}
-    color  = _color.get(level, "#9aa4b2")
+    color  = _color.get(level, "#6B7280")
     icon   = _icon.get(level, "ℹ")
 
     frame = QFrame()
@@ -32,7 +32,7 @@ def info_banner(message: str, hint: str = "", level: str = "info") -> QFrame:
 
     if hint:
         hint_lbl = QLabel(hint)
-        hint_lbl.setStyleSheet("color: #6e7681; font-size: 11px; border: none;")
+        hint_lbl.setStyleSheet("color: #6B7280; font-size: 11px; border: none;")
         hint_lbl.setWordWrap(True)
         lay.addWidget(hint_lbl)
 

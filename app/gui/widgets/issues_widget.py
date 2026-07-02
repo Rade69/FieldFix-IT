@@ -38,7 +38,7 @@ def _build_row(color: str, title: str, description: str) -> QFrame:
     t = QLabel(title)
     t.setStyleSheet("font-weight: 600; font-size: 12px;")
     d = QLabel(description)
-    d.setStyleSheet("color: #9aa4b2; font-size: 11px;")
+    d.setStyleSheet("color: #6B7280; font-size: 11px;")
     d.setWordWrap(True)
     text_col.addWidget(t)
     text_col.addWidget(d)
@@ -96,7 +96,7 @@ class IssuesRecommendationsWidget(QFrame):
 
     def _placeholder(self) -> None:
         lbl = QLabel("Run a scan to detect issues.")
-        lbl.setStyleSheet("color: #9aa4b2;")
+        lbl.setStyleSheet("color: #6B7280;")
         self._content.addWidget(lbl)
 
     def update_data(self, issues: tuple[Issue, ...]) -> None:
@@ -114,6 +114,6 @@ class IssuesRecommendationsWidget(QFrame):
             return
 
         for issue in issues[:6]:  # show top 6 in Dashboard panel
-            c = _SEVERITY_COLOR.get(issue.severity, "#9aa4b2")
+            c = _SEVERITY_COLOR.get(issue.severity, "#6B7280")
             desc = issue.likely_cause or (issue.evidence[0] if issue.evidence else "")
             self._content.addWidget(_build_row(c, issue.title, desc))

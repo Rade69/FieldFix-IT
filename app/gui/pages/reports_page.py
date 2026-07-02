@@ -156,7 +156,7 @@ class ReportsPage(QWidget):
         self._preview.setFont(_monospace_font())
         self._preview.setPlaceholderText("Report preview will appear here after generation.")
         self._preview.setStyleSheet(
-            "QPlainTextEdit { background: #0d1117; color: #c9d1d9; "
+            "QPlainTextEdit { background: #F8FAFC; color: #1F2937; "
             "border: none; font-size: 12px; padding: 12px; }"
         )
         outer.addWidget(self._preview, stretch=1)

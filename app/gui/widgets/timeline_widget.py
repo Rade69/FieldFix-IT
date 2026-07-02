@@ -18,7 +18,7 @@ def _build_row(event: TimelineEvent) -> QHBoxLayout:
     row.setSpacing(10)
 
     time_lbl = QLabel(event.time)
-    time_lbl.setStyleSheet("color: #9aa4b2; font-size: 11px; font-family: monospace;")
+    time_lbl.setStyleSheet("color: #6B7280; font-size: 11px; font-family: monospace;")
     time_lbl.setFixedWidth(56)
     row.addWidget(time_lbl)
 
@@ -33,7 +33,7 @@ def _build_row(event: TimelineEvent) -> QHBoxLayout:
     row.addStretch(1)
 
     detail_lbl = QLabel(event.detail)
-    detail_lbl.setStyleSheet("color: #9aa4b2; font-size: 11px;")
+    detail_lbl.setStyleSheet("color: #6B7280; font-size: 11px;")
     row.addWidget(detail_lbl)
 
     return row
@@ -64,7 +64,7 @@ class ActivityTimelineWidget(QFrame):
         header_row.addWidget(title)
         header_row.addStretch(1)
         clear_link = QLabel("⟲ Clear")
-        clear_link.setStyleSheet("color: #58a6ff;")
+        clear_link.setStyleSheet("color: #2563EB;")
         header_row.addWidget(clear_link)
         layout.addLayout(header_row)
 
@@ -77,7 +77,7 @@ class ActivityTimelineWidget(QFrame):
 
     def _placeholder(self) -> None:
         lbl = QLabel("No scan results yet.")
-        lbl.setStyleSheet("color: #9aa4b2;")
+        lbl.setStyleSheet("color: #6B7280;")
         self._content.addWidget(lbl)
 
     def update_data(self, events: list[TimelineEvent]) -> None:

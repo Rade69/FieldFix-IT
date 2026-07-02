@@ -208,14 +208,14 @@ def _add_node(scene: QGraphicsScene, pos: tuple[float, float], node: dict) -> No
 
     icon_item = QGraphicsTextItem(icon)
     icon_item.setFont(QFont("Segoe UI Emoji", 16))
-    icon_item.setDefaultTextColor(QColor("#f0f6fc"))
+    icon_item.setDefaultTextColor(QColor("#1F2937"))
     icon_item.setPos(cx - icon_item.boundingRect().width() / 2, y + 6)
     icon_item.setZValue(2)
     scene.addItem(icon_item)
 
     label_item = QGraphicsTextItem(str(node.get("label", "")))
     label_item.setFont(QFont("Segoe UI", 8, QFont.Weight.Bold))
-    label_item.setDefaultTextColor(QColor("#f0f6fc"))
+    label_item.setDefaultTextColor(QColor("#1F2937"))
     label_item.setTextWidth(_CARD_W - 8)
     label_item.setPos(x + 6, y + 32)
     label_item.setZValue(2)
@@ -225,7 +225,7 @@ def _add_node(scene: QGraphicsScene, pos: tuple[float, float], node: dict) -> No
     if sub_text:
         sub_item = QGraphicsTextItem(sub_text)
         sub_item.setFont(QFont("Segoe UI", 7))
-        sub_item.setDefaultTextColor(QColor("#9aa4b2"))
+        sub_item.setDefaultTextColor(QColor("#6B7280"))
         sub_item.setTextWidth(_CARD_W - 12)
         sub_item.setPos(x + 6, y + 48)
         sub_item.setZValue(2)
@@ -238,7 +238,7 @@ def _add_node(scene: QGraphicsScene, pos: tuple[float, float], node: dict) -> No
     ]
     detail_item = QGraphicsTextItem("\n".join(detail_lines))
     detail_item.setFont(QFont("Segoe UI", 6))
-    detail_item.setDefaultTextColor(QColor("#c9d1d9"))
+    detail_item.setDefaultTextColor(QColor("#6B7280"))
     detail_item.setTextWidth(_CARD_W - 12)
     detail_item.setPos(x + 6, y + 66)
     detail_item.setZValue(2)
@@ -344,7 +344,7 @@ def _badge(text: str, fg: str, bg: str = "") -> QLabel:
 def _section_label(title: str) -> QLabel:
     lbl = QLabel(title)
     lbl.setStyleSheet(
-        "color: #6e7681; font-size: 11px; font-weight: bold;"
+        "color: #6B7280; font-size: 11px; font-weight: bold;"
         " padding: 12px 0 4px 0; letter-spacing: 0.5px;"
     )
     return lbl
@@ -356,9 +356,9 @@ def _filter_btn(label: str) -> QPushButton:
     btn.setCursor(Qt.CursorShape.PointingHandCursor)
     btn.setStyleSheet(
         "QPushButton { background: transparent; border: 1px solid #30363d;"
-        " border-radius: 12px; padding: 3px 12px; font-size: 11px; color: #6e7681; }"
+        " border-radius: 12px; padding: 3px 12px; font-size: 11px; color: #6B7280; }"
         "QPushButton:checked { border-color: #58a6ff; color: #58a6ff; background: #0a1929; }"
-        "QPushButton:hover:!checked { border-color: #8b949e; color: #c9d1d9; }"
+        "QPushButton:hover:!checked { border-color: #6B7280; color: #6B7280; }"
     )
     return btn
 
@@ -406,7 +406,7 @@ class _StatCard(QFrame):
         lay.addLayout(top)
 
         self._sub = QLabel(sub)
-        self._sub.setStyleSheet("border: none; color: #6e7681; font-size: 9px;")
+        self._sub.setStyleSheet("border: none; color: #6B7280; font-size: 9px;")
         lay.addWidget(self._sub)
 
     def set_value(self, value: str, sub: str = "") -> None:
@@ -420,7 +420,7 @@ _ARP_STATE = {"2": "Reachable", "4": "Stale", "6": "Unreachable", "8": "Incomple
 
 
 _TYPE_ICONS = {"pc": "🖥", "printer": "🖨", "web_device": "🌐", "unknown": "💻"}
-_TYPE_COLORS = {"pc": "#1f6feb", "printer": "#a371f7", "web_device": "#58a6ff", "unknown": "#6e7681"}
+_TYPE_COLORS = {"pc": "#1f6feb", "printer": "#a371f7", "web_device": "#58a6ff", "unknown": "#6B7280"}
 
 
 class _DeviceRow(QFrame):
@@ -447,11 +447,11 @@ class _DeviceRow(QFrame):
         info.addWidget(name_lbl)
         sub_parts = [p for p in (dev.ip_address if dev.hostname else "", dev.mac_address) if p]
         sub_lbl = QLabel("  ·  ".join(sub_parts) or dev.ip_address)
-        sub_lbl.setStyleSheet("color: #6e7681; font-size: 11px; font-family: monospace;")
+        sub_lbl.setStyleSheet("color: #6B7280; font-size: 11px; font-family: monospace;")
         info.addWidget(sub_lbl)
         row.addLayout(info, stretch=1)
 
-        color = _TYPE_COLORS.get(dev.device_type, "#6e7681")
+        color = _TYPE_COLORS.get(dev.device_type, "#6B7280")
         type_label = dev.device_type.replace("_", " ").title() if dev.device_type != "unknown" else "Unknown"
         row.addWidget(_badge(type_label, color))
 
@@ -489,7 +489,7 @@ class _PrinterRow(QFrame):
         name_lbl.setStyleSheet("font-weight: bold; font-size: 13px; color: #f0f6fc;")
         info.addWidget(name_lbl)
         sub_lbl = QLabel(sub or ip or "—")
-        sub_lbl.setStyleSheet("color: #6e7681; font-size: 11px;")
+        sub_lbl.setStyleSheet("color: #6B7280; font-size: 11px;")
         info.addWidget(sub_lbl)
         row.addLayout(info, stretch=1)
 
@@ -598,7 +598,7 @@ class _InventoryView(QWidget):
         self._layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         self._placeholder = QLabel(self._PLACEHOLDER)
-        self._placeholder.setStyleSheet("color: #6e7681; font-size: 13px; padding: 40px;")
+        self._placeholder.setStyleSheet("color: #6B7280; font-size: 13px; padding: 40px;")
         self._placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._layout.addWidget(self._placeholder)
 
@@ -692,7 +692,7 @@ class _InventoryView(QWidget):
                 self._layout.addWidget(self._placeholder)
             else:
                 lbl = QLabel("No devices match the selected filter.")
-                lbl.setStyleSheet("color: #6e7681; font-size: 13px; padding: 40px;")
+                lbl.setStyleSheet("color: #6B7280; font-size: 13px; padding: 40px;")
                 lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 self._layout.addWidget(lbl)
             return
@@ -740,7 +740,7 @@ class _InventoryView(QWidget):
     def _render_noise(self) -> None:
         if not self._noise:
             lbl = QLabel("No multicast/broadcast entries detected.")
-            lbl.setStyleSheet("color: #6e7681; font-size: 13px; padding: 40px;")
+            lbl.setStyleSheet("color: #6B7280; font-size: 13px; padding: 40px;")
             lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self._layout.addWidget(lbl)
             return
@@ -860,11 +860,11 @@ class TopologyPage(QWidget):
         btn = QPushButton(label)
         btn.setCheckable(True)
         btn.setStyleSheet(
-            "QPushButton { background: transparent; color: #6e7681; border: none;"
+            "QPushButton { background: transparent; color: #6B7280; border: none;"
             " border-bottom: 2px solid transparent; padding: 8px 16px;"
             " font-size: 13px; }"
             "QPushButton:checked { color: #f0f6fc; border-bottom: 2px solid #58a6ff; }"
-            "QPushButton:hover:!checked { color: #c9d1d9; }"
+            "QPushButton:hover:!checked { color: #6B7280; }"
         )
         btn.clicked.connect(lambda: self._switch_tab(index))
         return btn

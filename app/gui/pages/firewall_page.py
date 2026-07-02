@@ -20,7 +20,7 @@ _ACTION_COLOR = {
 
 _ENABLED_COLOR = {
     True: "#3fb950",
-    False: "#9aa4b2",
+    False: "#6B7280",
 }
 
 _DEFAULT_INBOUND_COLOR = {
@@ -38,14 +38,14 @@ def _bool_badge(value: bool | None) -> QLabel:
         color = _ENABLED_COLOR[False]
     else:
         text = "- Unknown"
-        color = "#9aa4b2"
+        color = "#6B7280"
     label = QLabel(text)
     label.setStyleSheet(f"color: {color}; font-weight: bold;")
     return label
 
 
 def _action_badge(action: str) -> QLabel:
-    color = _ACTION_COLOR.get(action, "#9aa4b2")
+    color = _ACTION_COLOR.get(action, "#6B7280")
     label = QLabel(action or "-")
     label.setStyleSheet(f"color: {color}; font-weight: bold;")
     return label
@@ -184,7 +184,7 @@ class FirewallPage(QWidget):
             row.addWidget(enabled_spacer)
 
             inbound = profile.default_inbound if profile else ""
-            inbound_color = _DEFAULT_INBOUND_COLOR.get(inbound, "#9aa4b2")
+            inbound_color = _DEFAULT_INBOUND_COLOR.get(inbound, "#6B7280")
             inbound_label = QLabel(inbound or "-")
             inbound_label.setFixedWidth(160)
             inbound_label.setStyleSheet(f"color: {inbound_color}; font-weight: bold;")
@@ -194,7 +194,7 @@ class FirewallPage(QWidget):
             outbound_color = (
                 "#d29922" if outbound == "Block"
                 else "#3fb950" if outbound == "Allow"
-                else "#9aa4b2"
+                else "#6B7280"
             )
             outbound_label = QLabel(outbound or "-")
             outbound_label.setFixedWidth(160)

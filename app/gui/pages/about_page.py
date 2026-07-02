@@ -70,7 +70,7 @@ class AboutPage(QWidget):
             "sharing, firewall, services, and printer issues on Windows 10/11 systems.\n\n"
             "The application operates in Read-Only Scan Mode by default — no system "
             "settings are changed without an explicit confirmation in Fix Center.",
-            "color: #c9d1d9; font-size: 12px; line-height: 1.6;",
+            "color: #6B7280; font-size: 12px; line-height: 1.6;",
         ))
 
         layout.addSpacing(8)
@@ -80,7 +80,7 @@ class AboutPage(QWidget):
         # Creator
         layout.addWidget(_centered(
             "Created by",
-            "color: #6e7681; font-size: 11px;",
+            "color: #6B7280; font-size: 11px;",
         ))
         layout.addWidget(_centered(
             "Radovan Stojanović",
@@ -89,7 +89,7 @@ class AboutPage(QWidget):
         layout.addSpacing(6)
         layout.addWidget(_centered(
             "Built with the assistance of AI coding models",
-            "color: #6e7681; font-size: 11px;",
+            "color: #6B7280; font-size: 11px;",
         ))
 
         ai_row = QHBoxLayout()
@@ -112,7 +112,7 @@ class AboutPage(QWidget):
         # Tech stack
         layout.addWidget(_centered(
             "Python 3.11 · PySide6 (Qt6) · PowerShell · Windows 10/11",
-            "color: #6e7681; font-size: 11px;",
+            "color: #6B7280; font-size: 11px;",
         ))
 
         outer.addSpacing(32)

@@ -159,14 +159,14 @@ class _PrinterDiscoveryPanel(QFrame):
             "QPushButton { background: #21262d; color: #58a6ff; border: 1px solid #30363d;"
             " border-radius: 4px; padding: 4px 10px; font-size: 11px; }"
             "QPushButton:hover { background: #30363d; }"
-            "QPushButton:disabled { color: #6e7681; }"
+            "QPushButton:disabled { color: #6B7280; }"
         )
         self._scan_btn.clicked.connect(self.start_scan)
         hdr.addWidget(self._scan_btn)
         outer.addLayout(hdr)
 
         self._status_lbl = QLabel("Click 'Scan network' to discover printers on the local subnet.")
-        self._status_lbl.setStyleSheet("color: #8b949e; font-size: 11px;")
+        self._status_lbl.setStyleSheet("color: #6B7280; font-size: 11px;")
         outer.addWidget(self._status_lbl)
 
         self._cards_layout = QVBoxLayout()
@@ -275,7 +275,7 @@ class _PrinterSelectorPanel(QFrame):
         outer.addLayout(self._cards_layout)
 
         self._empty_lbl = QLabel("No installed printers found.")
-        self._empty_lbl.setStyleSheet("color: #8b949e; font-size: 12px;")
+        self._empty_lbl.setStyleSheet("color: #6B7280; font-size: 12px;")
         self._empty_lbl.hide()
         outer.addWidget(self._empty_lbl)
 
@@ -322,7 +322,7 @@ class _PrinterSelectorPanel(QFrame):
             meta_parts.append(p.ip_address)
         if meta_parts:
             meta_lbl = QLabel(" · ".join(meta_parts))
-            meta_lbl.setStyleSheet("font-size: 11px; color: #8b949e;")
+            meta_lbl.setStyleSheet("font-size: 11px; color: #6B7280;")
             info.addWidget(meta_lbl)
 
         rl.addLayout(info, stretch=1)
@@ -399,10 +399,10 @@ class _PrinterFixPanel(QFrame):
         col = QVBoxLayout()
         col.setSpacing(2)
         lbl = QLabel(label)
-        lbl.setStyleSheet("font-size: 12px; font-weight: bold; color: #c9d1d9;")
+        lbl.setStyleSheet("font-size: 12px; font-weight: bold; color: #6B7280;")
         col.addWidget(lbl)
         desc_lbl = QLabel(desc)
-        desc_lbl.setStyleSheet("font-size: 11px; color: #8b949e;")
+        desc_lbl.setStyleSheet("font-size: 11px; color: #6B7280;")
         col.addWidget(desc_lbl)
         row.addLayout(col, stretch=1)
 
@@ -413,10 +413,10 @@ class _PrinterFixPanel(QFrame):
         btn = QPushButton(label)
         btn.setFixedWidth(150)
         btn.setStyleSheet(
-            "QPushButton { background: #21262d; color: #c9d1d9; border: 1px solid #30363d;"
+            "QPushButton { background: #E5E7EB; color: #1F2937; border: 1px solid #D8E0EA;"
             " border-radius: 4px; padding: 5px 10px; font-size: 11px; }"
             "QPushButton:hover { background: #30363d; }"
-            "QPushButton:disabled { color: #6e7681; }"
+            "QPushButton:disabled { color: #6B7280; }"
         )
         row.addWidget(btn)
 
@@ -437,7 +437,7 @@ class _PrinterFixPanel(QFrame):
         for btn, result_lbl in self._rows:
             btn.setEnabled(True)
             btn.setStyleSheet(
-                "QPushButton { background: #21262d; color: #c9d1d9; border: 1px solid #30363d;"
+                "QPushButton { background: #E5E7EB; color: #1F2937; border: 1px solid #D8E0EA;"
                 " border-radius: 4px; padding: 5px 10px; font-size: 11px; }"
                 "QPushButton:hover { background: #30363d; }"
             )
@@ -527,7 +527,7 @@ class _PrinterFixPanel(QFrame):
             btn.setEnabled(True)
             btn.setText("Retry")
             btn.setStyleSheet(
-                "QPushButton { background: #21262d; color: #c9d1d9; border: 1px solid #30363d;"
+                "QPushButton { background: #E5E7EB; color: #1F2937; border: 1px solid #D8E0EA;"
                 " border-radius: 4px; padding: 5px 10px; font-size: 11px; }"
                 "QPushButton:hover { background: #30363d; }"
             )
@@ -559,7 +559,7 @@ class _ScenarioCard(QFrame):
         title = QLabel(scenario.title)
         title.setStyleSheet("font-weight: bold; font-size: 13px; color: #f0f6fc;")
         desc = QLabel(scenario.description.split("\n")[0])
-        desc.setStyleSheet("color: #8b949e; font-size: 11px;")
+        desc.setStyleSheet("color: #6B7280; font-size: 11px;")
         text.addWidget(title)
         text.addWidget(desc)
         lay.addLayout(text, stretch=1)
@@ -598,12 +598,12 @@ class _CheckRow(QWidget):
         col.setSpacing(2)
 
         label = QLabel(item.label)
-        label.setStyleSheet("font-size: 12px; color: #c9d1d9;")
+        label.setStyleSheet("font-size: 12px; color: #6B7280;")
         col.addWidget(label)
 
         if not item.passed and item.detail:
             detail = QLabel(item.detail)
-            detail.setStyleSheet("font-size: 11px; color: #8b949e;")
+            detail.setStyleSheet("font-size: 11px; color: #6B7280;")
             detail.setWordWrap(True)
             col.addWidget(detail)
 
@@ -709,13 +709,13 @@ class _InstallPanel(QFrame):
             "If the printer was already added with a generic driver, clicking Install updates the driver."
         )
         desc.setWordWrap(True)
-        desc.setStyleSheet("color: #c9d1d9; font-size: 12px;")
+        desc.setStyleSheet("color: #6B7280; font-size: 12px;")
         outer.addWidget(desc)
 
         # What changes
         what_row = QHBoxLayout()
         what_lbl = QLabel("What changes:")
-        what_lbl.setStyleSheet("color: #8b949e; font-size: 11px;")
+        what_lbl.setStyleSheet("color: #6B7280; font-size: 11px;")
         what_row.addWidget(what_lbl)
         self._what_detail = QLabel("")
         self._what_detail.setStyleSheet("color: #9aa4b2; font-size: 11px;")
@@ -747,7 +747,7 @@ class _InstallPanel(QFrame):
                 "QPushButton { background: #238636; color: white; border-radius: 4px;"
                 " padding: 5px 12px; font-weight: bold; font-size: 12px; }"
                 "QPushButton:hover { background: #2ea043; }"
-                "QPushButton:disabled { background: #3d4249; color: #6e7681; }"
+                "QPushButton:disabled { background: #E5E7EB; color: #6B7280; }"
             )
             self._install_btn.clicked.connect(self._on_install)
         else:
@@ -756,7 +756,7 @@ class _InstallPanel(QFrame):
             self._install_btn.setEnabled(False)
             self._install_btn.setToolTip("Restart app as Administrator to install the printer.")
             self._install_btn.setStyleSheet(
-                "QPushButton { background: #3d4249; color: #6e7681; border-radius: 4px;"
+                "QPushButton { background: #E5E7EB; color: #6B7280; border-radius: 4px;"
                 " padding: 5px 12px; font-size: 12px; }"
             )
 
@@ -806,7 +806,7 @@ class _InstallPanel(QFrame):
         self._install_btn.setEnabled(False)
         self._install_btn.setText("Installing…")
         self._result_lbl.setText("Installing printer — this may take up to 30 seconds…")
-        self._result_lbl.setStyleSheet("font-size: 11px; color: #8b949e;")
+        self._result_lbl.setStyleSheet("font-size: 11px; color: #6B7280;")
         self._result_lbl.show()
 
         self._worker = _PrinterInstallWorker(self._runner, ip)
@@ -855,7 +855,7 @@ class _RemotePanel(QFrame):
         self._copy_btn = QPushButton("📋 Copy as text")
         self._copy_btn.setFixedWidth(130)
         self._copy_btn.setStyleSheet(
-            "QPushButton { background: #21262d; color: #c9d1d9; border: 1px solid #30363d;"
+            "QPushButton { background: #E5E7EB; color: #1F2937; border: 1px solid #D8E0EA;"
             " border-radius: 4px; padding: 4px 10px; font-size: 11px; }"
             "QPushButton:hover { background: #30363d; }"
         )
@@ -867,7 +867,7 @@ class _RemotePanel(QFrame):
             "Apply these steps on the other Windows PC (as Administrator).\n"
             "Use the PowerShell commands or follow the manual instructions."
         )
-        subtitle.setStyleSheet("color: #8b949e; font-size: 11px;")
+        subtitle.setStyleSheet("color: #6B7280; font-size: 11px;")
         subtitle.setWordWrap(True)
         lay.addWidget(subtitle)
 
@@ -901,12 +901,12 @@ class _RemotePanel(QFrame):
             num.setStyleSheet("color: #58a6ff; font-weight: bold; font-size: 12px;")
             label_row.addWidget(num)
             lbl = QLabel(step.label)
-            lbl.setStyleSheet("font-weight: bold; font-size: 12px; color: #c9d1d9;")
+            lbl.setStyleSheet("font-weight: bold; font-size: 12px; color: #6B7280;")
             label_row.addWidget(lbl, stretch=1)
             row.addLayout(label_row)
 
             manual = QLabel(f"  {step.manual}")
-            manual.setStyleSheet("color: #8b949e; font-size: 11px;")
+            manual.setStyleSheet("color: #6B7280; font-size: 11px;")
             manual.setWordWrap(True)
             row.addWidget(manual)
 
@@ -972,7 +972,7 @@ class ScenariosPage(QWidget):
         root.addLayout(hdr_row)
 
         subtitle = QLabel("Select a scenario to run a targeted diagnostic and get step-by-step guidance.")
-        subtitle.setStyleSheet("color: #8b949e; font-size: 12px;")
+        subtitle.setStyleSheet("color: #6B7280; font-size: 12px;")
         root.addWidget(subtitle)
 
         # Scenario cards
@@ -1000,7 +1000,7 @@ class ScenariosPage(QWidget):
 
         self._scenario_desc = QLabel()
         self._scenario_desc.setWordWrap(True)
-        self._scenario_desc.setStyleSheet("color: #c9d1d9; font-size: 12px;")
+        self._scenario_desc.setStyleSheet("color: #6B7280; font-size: 12px;")
         detail_lay.addWidget(self._scenario_desc)
 
         # Target IP input (hidden for scenarios that don't need a remote IP)
@@ -1008,7 +1008,7 @@ class ScenariosPage(QWidget):
         ip_row = QHBoxLayout(self._ip_section)
         ip_row.setContentsMargins(0, 0, 0, 0)
         self._ip_lbl = QLabel("Target PC IP (optional):")
-        self._ip_lbl.setStyleSheet("color: #8b949e; font-size: 12px;")
+        self._ip_lbl.setStyleSheet("color: #6B7280; font-size: 12px;")
         ip_row.addWidget(self._ip_lbl)
         self._ip_input = QLineEdit()
         self._ip_input.setPlaceholderText("e.g. 192.168.1.100")
@@ -1021,7 +1021,7 @@ class ScenariosPage(QWidget):
         ip_row.addWidget(self._ip_input)
 
         self._tip_lbl = QLabel()
-        self._tip_lbl.setStyleSheet("color: #6e7681; font-size: 11px; font-style: italic;")
+        self._tip_lbl.setStyleSheet("color: #6B7280; font-size: 11px; font-style: italic;")
         ip_row.addWidget(self._tip_lbl)
         ip_row.addStretch(1)
         detail_lay.addWidget(self._ip_section)
@@ -1034,13 +1034,13 @@ class ScenariosPage(QWidget):
             "QPushButton { background: #1f6feb; color: white; border-radius: 6px;"
             " padding: 7px 16px; font-weight: bold; font-size: 13px; }"
             "QPushButton:hover { background: #388bfd; }"
-            "QPushButton:disabled { background: #21262d; color: #6e7681; }"
+            "QPushButton:disabled { background: #E5E7EB; color: #6B7280; }"
         )
         self._run_btn.clicked.connect(self._run_diagnostic)
         run_row.addWidget(self._run_btn)
 
         self._status_lbl = QLabel("")
-        self._status_lbl.setStyleSheet("color: #8b949e; font-size: 12px;")
+        self._status_lbl.setStyleSheet("color: #6B7280; font-size: 12px;")
         run_row.addWidget(self._status_lbl)
         run_row.addStretch(1)
         detail_lay.addLayout(run_row)

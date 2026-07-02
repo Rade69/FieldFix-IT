@@ -28,7 +28,7 @@ def _status_color(status: str) -> str:
         return "#d29922"
     if status:
         return "#f85149"   # Error, Offline, PaperJam, etc.
-    return "#9aa4b2"
+    return "#6B7280"
 
 
 def _job_color(status: str) -> str:
@@ -38,7 +38,7 @@ def _job_color(status: str) -> str:
         return "#d29922"
     if status:
         return "#f85149"
-    return "#9aa4b2"
+    return "#6B7280"
 
 
 def _panel(title: str) -> tuple[QFrame, QVBoxLayout]:
@@ -149,9 +149,9 @@ class PrintersPage(QWidget):
         row = QHBoxLayout()
         for text, color in [
             (f"✓ OK: {ok}", "#3fb950"),
-            (f"⚠ Problem: {problem}", "#f85149" if problem > 0 else "#9aa4b2"),
-            (f"🖨 Total: {total}", "#9aa4b2"),
-            (f"📄 Print Jobs: {jobs}", "#d29922" if jobs > 0 else "#9aa4b2"),
+            (f"⚠ Problem: {problem}", "#f85149" if problem > 0 else "#6B7280"),
+            (f"🖨 Total: {total}", "#6B7280"),
+            (f"📄 Print Jobs: {jobs}", "#d29922" if jobs > 0 else "#6B7280"),
         ]:
             lbl = QLabel(text)
             lbl.setStyleSheet(f"color: {color}; font-weight: bold; margin-right: 20px;")

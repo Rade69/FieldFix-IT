@@ -133,17 +133,17 @@ class MainWindow(QMainWindow):
 
         export_btn = QPushButton("📄 Export Report")
         export_btn.setStyleSheet(
-            "QPushButton { background: transparent; color: #58a6ff; border: none;"
+            "QPushButton { background: transparent; color: #2563EB; border: none;"
             " padding: 2px 8px; font-size: 12px; }"
-            "QPushButton:hover { color: #f0f6fc; }"
+            "QPushButton:hover { color: #1D4ED8; }"
         )
         bar.addPermanentWidget(export_btn)
 
         last_report_btn = QPushButton("📋 Open Last Report")
         last_report_btn.setStyleSheet(
-            "QPushButton { background: transparent; color: #58a6ff; border: none;"
+            "QPushButton { background: transparent; color: #2563EB; border: none;"
             " padding: 2px 8px; font-size: 12px; }"
-            "QPushButton:hover { color: #f0f6fc; }"
+            "QPushButton:hover { color: #1D4ED8; }"
         )
         bar.addPermanentWidget(last_report_btn)
 
