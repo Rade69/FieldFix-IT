@@ -4,6 +4,7 @@ from PySide6.QtWidgets import QApplication, QHBoxLayout, QLabel, QMainWindow, QP
 from app.gui.dashboard import DashboardPage
 from app.gui.icons import APP_ICON_ICO
 from app.gui.pages.about_page import AboutPage
+from app.gui.pages.scenarios_page import ScenariosPage
 from app.gui.pages.firewall_page import FirewallPage
 from app.gui.pages.fix_center_page import FixCenterPage
 from app.gui.pages.network_page import NetworkPage
@@ -25,6 +26,7 @@ _PAGES = [
     ("Services", ServicesPage),
     ("Printers", PrintersPage),
     ("Topology", TopologyPage),
+    ("Scenarios", ScenariosPage),
     ("Fix Center", FixCenterPage),
     ("Reports", ReportsPage),
     ("Settings", SettingsPage),
@@ -57,6 +59,9 @@ class MainWindow(QMainWindow):
 
         _fix_idx = next(i for i, (n, _) in enumerate(_PAGES) if n == "Fix Center")
         _instances[0].open_fix_center.connect(lambda: _go(_fix_idx))
+
+        _scen_idx = next(i for i, (n, _) in enumerate(_PAGES) if n == "Scenarios")
+        _instances[_scen_idx].open_fix_center.connect(lambda: _go(_fix_idx))
 
         _topo_idx = next(i for i, (n, _) in enumerate(_PAGES) if n == "Topology")
         _instances[0].open_topology.connect(lambda: _go(_topo_idx))
