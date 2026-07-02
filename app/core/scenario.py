@@ -63,7 +63,21 @@ ADD_NETWORK_PRINTER = Scenario(
     check_fn_name="check_add_network_printer",
 )
 
-ALL_SCENARIOS: tuple[Scenario, ...] = (CONNECT_TWO_PCS, ADD_NETWORK_PRINTER)
+FIX_PRINTER_PROBLEMS = Scenario(
+    id="fix_printer_problems",
+    title="Fix Printer Problems",
+    description=(
+        "Diagnoses why an installed printer isn't working and fixes common issues.\n\n"
+        "Checks: Print Spooler status, printer online/offline, stuck print queue, "
+        "and network reachability. Fixes applied directly here — no Fix Center needed."
+    ),
+    icon="🔧",
+    tip="Select the printer that isn't working from the list below.",
+    scan_modules=("services", "printers", "network"),
+    check_fn_name="check_fix_printer_problems",
+)
+
+ALL_SCENARIOS: tuple[Scenario, ...] = (CONNECT_TWO_PCS, ADD_NETWORK_PRINTER, FIX_PRINTER_PROBLEMS)
 
 
 # ── Check functions ───────────────────────────────────────────────────────────
@@ -354,12 +368,81 @@ def remote_checklist_add_network_printer() -> list[RemoteStep]:
     ]
 
 
-def run_checks(scenario: Scenario, result: ScanResult, target_ip: str = "") -> list[CheckItem]:
+def check_fix_printer_problems(result: ScanResult, target_name: str = "") -> list[CheckItem]:
+    """Return an ordered checklist for the 'Fix Printer Problems' scenario."""
+    issue_ids = {i.id for i in result.issues}
+    prn  = result.report.printers
+    net  = result.report.network
+
+    items: list[CheckItem] = []
+
+    spooler_ok = "SERVICE_STOPPED_SPOOLER" not in issue_ids
+    items.append(CheckItem(
+        label="Print Spooler service running",
+        passed=spooler_ok,
+        detail="" if spooler_ok else "Spooler is stopped — no printer will work until it is restarted.",
+        fix_id="" if spooler_ok else "START_PRINT_SPOOLER",
+        group="Spooler",
+    ))
+
+    if not target_name or not prn:
+        return items
+
+    printer = next((p for p in prn.printers if p.name == target_name), None)
+    if not printer:
+        return items
+
+    # ── Online / paused / error ───────────────────────────────────────────────
+
+    status_lo = printer.status.lower()
+    is_offline = any(s in status_lo for s in ("offline", "paused", "error"))
+    items.append(CheckItem(
+        label="Printer is online",
+        passed=not is_offline,
+        detail="" if not is_offline
+        else f"Status: {printer.status} — printer is unreachable, paused, or in error state.",
+        group="Printer Status",
+    ))
+
+    # ── Print queue ───────────────────────────────────────────────────────────
+
+    queue_ok = printer.job_count == 0
+    items.append(CheckItem(
+        label="Print queue is clear",
+        passed=queue_ok,
+        detail="" if queue_ok else f"{printer.job_count} job(s) stuck in the queue.",
+        group="Print Queue",
+    ))
+
+    # ── Network reachability (TCP/IP printers only) ───────────────────────────
+
+    if printer.ip_address:
+        arp_ips = {e.ip_address for e in net.arp_entries} if net else set()
+        reachable = printer.ip_address in arp_ips
+        items.append(CheckItem(
+            label=f"Printer reachable on network ({printer.ip_address})",
+            passed=reachable,
+            detail="" if reachable
+            else f"{printer.ip_address} not responding — printer may be off or its IP changed.",
+            group="Network",
+        ))
+
+    return items
+
+
+def run_checks(
+    scenario: Scenario,
+    result: ScanResult,
+    target_ip: str = "",
+    target_name: str = "",
+) -> list[CheckItem]:
     """Dispatch to the correct check function for the given scenario."""
     if scenario.check_fn_name == "check_connect_two_pcs":
         return check_connect_two_pcs(result, target_ip)
     if scenario.check_fn_name == "check_add_network_printer":
         return check_add_network_printer(result, target_ip)
+    if scenario.check_fn_name == "check_fix_printer_problems":
+        return check_fix_printer_problems(result, target_name)
     return []
 
 

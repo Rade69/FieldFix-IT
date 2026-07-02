@@ -28,6 +28,7 @@ from app.core.scan_session import ScanResult, ScanSession
 from app.core.scenario import ALL_SCENARIOS, CheckItem, RemoteStep, Scenario, run_checks, run_remote_checklist
 from app.modules.network.models import DiscoveredDevice
 from app.modules.network.subnet_scanner import SubnetScanner
+from app.modules.printers.models import PrinterInfo
 
 
 def _is_valid_ipv4(ip: str) -> bool:
@@ -244,6 +245,294 @@ class _PrinterDiscoveryPanel(QFrame):
             child = self._cards_layout.takeAt(0)
             if child.widget():
                 child.widget().deleteLater()
+
+
+# ── Installed printer selector (Fix Printer scenario) ────────────────────────
+
+_SYSTEM_PRINTER_PATTERNS = (
+    "microsoft", "fax", "xps", "onenote", "pdf", "print to", "remote desktop",
+)
+
+
+class _PrinterSelectorPanel(QFrame):
+    """Shows installed printers and lets user pick which one to diagnose."""
+
+    printer_selected = Signal(str)   # printer name
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.setObjectName("PanelCard")
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(20, 14, 20, 14)
+        outer.setSpacing(10)
+
+        title = QLabel("🖨 Select the printer that isn't working")
+        title.setStyleSheet("font-size: 13px; font-weight: bold; color: #f0f6fc;")
+        outer.addWidget(title)
+
+        self._cards_layout = QVBoxLayout()
+        self._cards_layout.setSpacing(6)
+        outer.addLayout(self._cards_layout)
+
+        self._empty_lbl = QLabel("No installed printers found.")
+        self._empty_lbl.setStyleSheet("color: #8b949e; font-size: 12px;")
+        self._empty_lbl.hide()
+        outer.addWidget(self._empty_lbl)
+
+    def configure(self, printers: list[PrinterInfo]) -> None:
+        while self._cards_layout.count():
+            child = self._cards_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+
+        real = [
+            p for p in printers
+            if not any(pat in p.name.lower() for pat in _SYSTEM_PRINTER_PATTERNS)
+        ]
+
+        if not real:
+            self._empty_lbl.show()
+            return
+
+        self._empty_lbl.hide()
+        for p in real:
+            self._add_card(p)
+
+    def _add_card(self, p: PrinterInfo) -> None:
+        row = QFrame()
+        row.setStyleSheet(
+            "QFrame { background: #161b22; border: 1px solid #30363d; border-radius: 4px; }"
+        )
+        rl = QHBoxLayout(row)
+        rl.setContentsMargins(12, 8, 12, 8)
+
+        icon = QLabel("🖨")
+        icon.setStyleSheet("font-size: 20px;")
+        rl.addWidget(icon)
+
+        info = QVBoxLayout()
+        name_lbl = QLabel(p.name)
+        name_lbl.setStyleSheet("font-weight: bold; font-size: 12px; color: #f0f6fc;")
+        info.addWidget(name_lbl)
+
+        meta_parts = []
+        if p.driver_name:
+            meta_parts.append(p.driver_name)
+        if p.ip_address:
+            meta_parts.append(p.ip_address)
+        if meta_parts:
+            meta_lbl = QLabel(" · ".join(meta_parts))
+            meta_lbl.setStyleSheet("font-size: 11px; color: #8b949e;")
+            info.addWidget(meta_lbl)
+
+        rl.addLayout(info, stretch=1)
+
+        # Status badge
+        status_lo = p.status.lower()
+        is_bad = any(s in status_lo for s in ("offline", "error", "paused"))
+        badge = QLabel(p.status or "Unknown")
+        badge.setStyleSheet(
+            f"background: {'#3d1111' if is_bad else '#0d2e1a'};"
+            f" color: {'#f85149' if is_bad else '#3fb950'};"
+            " border-radius: 3px; padding: 2px 8px; font-size: 11px;"
+        )
+        rl.addWidget(badge)
+
+        if p.job_count:
+            jobs_lbl = QLabel(f"{p.job_count} job(s)")
+            jobs_lbl.setStyleSheet("color: #d29922; font-size: 11px;")
+            rl.addWidget(jobs_lbl)
+
+        select_btn = QPushButton("Select")
+        select_btn.setFixedWidth(70)
+        select_btn.setStyleSheet(
+            "QPushButton { background: #1f6feb; color: white; border-radius: 4px;"
+            " padding: 4px 8px; font-size: 11px; }"
+            "QPushButton:hover { background: #388bfd; }"
+        )
+        name = p.name
+        select_btn.clicked.connect(lambda: self.printer_selected.emit(name))
+        rl.addWidget(select_btn)
+
+        self._cards_layout.addWidget(row)
+
+
+# ── Inline fix panel (Fix Printer scenario) ───────────────────────────────────
+
+class _PrinterFixPanel(QFrame):
+    """Three quick fixes for a selected printer: Restart Spooler, Clear Queue, Set Online."""
+
+    def __init__(self, runner: PowerShellRunner) -> None:
+        super().__init__()
+        self._runner = runner
+        self._printer_name = ""
+
+        self.setObjectName("PanelCard")
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(20, 14, 20, 14)
+        outer.setSpacing(12)
+
+        self._title = QLabel("🔧 Quick fixes")
+        self._title.setStyleSheet("font-size: 13px; font-weight: bold; color: #f0f6fc;")
+        outer.addWidget(self._title)
+
+        sep = QFrame()
+        sep.setFrameShape(QFrame.Shape.HLine)
+        sep.setStyleSheet("color: #30363d;")
+        outer.addWidget(sep)
+
+        self._rows: list[tuple[QPushButton, QLabel]] = []
+        for label, desc in [
+            ("🔄 Restart Spooler",  "Stops and restarts the Print Spooler service."),
+            ("🗑 Clear Queue",       "Removes all stuck jobs from the print queue."),
+            ("▶ Set Online",         "Clears the 'Work Offline' flag for this printer."),
+        ]:
+            btn, result_lbl = self._add_fix_row(outer, label, desc)
+            self._rows.append((btn, result_lbl))
+
+    def _add_fix_row(
+        self, parent_layout: QVBoxLayout, label: str, desc: str
+    ) -> tuple[QPushButton, QLabel]:
+        row = QHBoxLayout()
+        row.setSpacing(12)
+
+        col = QVBoxLayout()
+        col.setSpacing(2)
+        lbl = QLabel(label)
+        lbl.setStyleSheet("font-size: 12px; font-weight: bold; color: #c9d1d9;")
+        col.addWidget(lbl)
+        desc_lbl = QLabel(desc)
+        desc_lbl.setStyleSheet("font-size: 11px; color: #8b949e;")
+        col.addWidget(desc_lbl)
+        row.addLayout(col, stretch=1)
+
+        result_lbl = QLabel("")
+        result_lbl.setStyleSheet("font-size: 11px;")
+        result_lbl.hide()
+
+        btn = QPushButton(label)
+        btn.setFixedWidth(150)
+        btn.setStyleSheet(
+            "QPushButton { background: #21262d; color: #c9d1d9; border: 1px solid #30363d;"
+            " border-radius: 4px; padding: 5px 10px; font-size: 11px; }"
+            "QPushButton:hover { background: #30363d; }"
+            "QPushButton:disabled { color: #6e7681; }"
+        )
+        row.addWidget(btn)
+
+        container = QWidget()
+        v = QVBoxLayout(container)
+        v.setContentsMargins(0, 0, 0, 0)
+        v.setSpacing(2)
+        v.addLayout(row)
+        v.addWidget(result_lbl)
+        parent_layout.addWidget(container)
+
+        return btn, result_lbl
+
+    def configure(self, printer_name: str, job_count: int) -> None:
+        self._printer_name = printer_name
+        self._title.setText(f"🔧 Quick fixes for: {printer_name}")
+
+        for btn, result_lbl in self._rows:
+            btn.setEnabled(True)
+            btn.setStyleSheet(
+                "QPushButton { background: #21262d; color: #c9d1d9; border: 1px solid #30363d;"
+                " border-radius: 4px; padding: 5px 10px; font-size: 11px; }"
+                "QPushButton:hover { background: #30363d; }"
+            )
+            result_lbl.setText("")
+            result_lbl.hide()
+
+        restart_btn, _ = self._rows[0]
+        clear_btn, _   = self._rows[1]
+        online_btn, _  = self._rows[2]
+
+        restart_btn.clicked.disconnect() if restart_btn.receivers(restart_btn.clicked) else None
+        clear_btn.clicked.disconnect()   if clear_btn.receivers(clear_btn.clicked)   else None
+        online_btn.clicked.disconnect()  if online_btn.receivers(online_btn.clicked) else None
+
+        restart_btn.clicked.connect(self._on_restart_spooler)
+        clear_btn.clicked.connect(self._on_clear_queue)
+        online_btn.clicked.connect(self._on_set_online)
+
+    # ── Individual fix handlers ───────────────────────────────────────────────
+
+    def _on_restart_spooler(self) -> None:
+        self._apply(
+            btn_idx=0,
+            confirm_title="Restart Print Spooler?",
+            confirm_body="Stops and restarts the Spooler service. Printing will be briefly unavailable.",
+            ps="Restart-Service Spooler -Force -ErrorAction Stop",
+            timeout=20,
+        )
+
+    def _on_clear_queue(self) -> None:
+        self._apply(
+            btn_idx=1,
+            confirm_title="Clear print queue?",
+            confirm_body="Stops Spooler, deletes all pending print jobs, and restarts Spooler.",
+            ps=(
+                "Stop-Service Spooler -Force -ErrorAction Stop; "
+                "Remove-Item \"$env:SystemRoot\\System32\\spool\\PRINTERS\\*\" "
+                "-Recurse -Force -ErrorAction SilentlyContinue; "
+                "Start-Service Spooler -ErrorAction Stop"
+            ),
+            timeout=30,
+        )
+
+    def _on_set_online(self) -> None:
+        name_safe = self._printer_name.replace("'", "''")
+        self._apply(
+            btn_idx=2,
+            confirm_title="Set printer online?",
+            confirm_body=f"Clears the 'Work Offline' flag for <b>{self._printer_name}</b>.",
+            ps=f"Set-Printer -Name '{name_safe}' -WorkOffline $false -ErrorAction Stop",
+            timeout=15,
+        )
+
+    def _apply(
+        self, btn_idx: int, confirm_title: str, confirm_body: str, ps: str, timeout: int
+    ) -> None:
+        confirmed = QMessageBox.question(
+            self, confirm_title,
+            f"{confirm_body}<br><br>Continue?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel,
+        )
+        if confirmed != QMessageBox.StandardButton.Yes:
+            return
+
+        btn, result_lbl = self._rows[btn_idx]
+        btn.setEnabled(False)
+        btn.setText("Applying…")
+
+        from PySide6.QtWidgets import QApplication
+        QApplication.processEvents()
+
+        result = self._runner.run(ps, timeout=timeout)
+
+        if result.succeeded:
+            result_lbl.setText("✓ Done")
+            result_lbl.setStyleSheet("font-size: 11px; color: #3fb950; font-weight: bold;")
+            btn.setText("✓ Applied")
+            btn.setStyleSheet(
+                "QPushButton { background: #1a4731; color: #3fb950; border-radius: 4px;"
+                " padding: 5px 10px; font-size: 11px; }"
+            )
+        else:
+            err = (result.stderr or result.stdout or "Unknown error").strip()[:160]
+            result_lbl.setText(f"✕ {err}")
+            result_lbl.setStyleSheet("font-size: 11px; color: #f85149;")
+            btn.setEnabled(True)
+            btn.setText("Retry")
+            btn.setStyleSheet(
+                "QPushButton { background: #21262d; color: #c9d1d9; border: 1px solid #30363d;"
+                " border-radius: 4px; padding: 5px 10px; font-size: 11px; }"
+                "QPushButton:hover { background: #30363d; }"
+            )
+
+        result_lbl.show()
 
 
 # ── Scenario card (top selector) ──────────────────────────────────────────────
@@ -713,8 +1002,10 @@ class ScenariosPage(QWidget):
         self._scenario_desc.setStyleSheet("color: #c9d1d9; font-size: 12px;")
         detail_lay.addWidget(self._scenario_desc)
 
-        # Target IP input
-        ip_row = QHBoxLayout()
+        # Target IP input (hidden for scenarios that don't need a remote IP)
+        self._ip_section = QWidget()
+        ip_row = QHBoxLayout(self._ip_section)
+        ip_row.setContentsMargins(0, 0, 0, 0)
         self._ip_lbl = QLabel("Target PC IP (optional):")
         self._ip_lbl.setStyleSheet("color: #8b949e; font-size: 12px;")
         ip_row.addWidget(self._ip_lbl)
@@ -732,7 +1023,7 @@ class ScenariosPage(QWidget):
         self._tip_lbl.setStyleSheet("color: #6e7681; font-size: 11px; font-style: italic;")
         ip_row.addWidget(self._tip_lbl)
         ip_row.addStretch(1)
-        detail_lay.addLayout(ip_row)
+        detail_lay.addWidget(self._ip_section)
 
         # Run button + status
         run_row = QHBoxLayout()
@@ -773,6 +1064,15 @@ class ScenariosPage(QWidget):
         self._install_panel.hide()
         self._results_layout.addWidget(self._install_panel)
 
+        self._printer_selector = _PrinterSelectorPanel()
+        self._printer_selector.printer_selected.connect(self._on_fix_printer_selected)
+        self._printer_selector.hide()
+        self._results_layout.addWidget(self._printer_selector)
+
+        self._printer_fix_panel = _PrinterFixPanel(self._runner)
+        self._printer_fix_panel.hide()
+        self._results_layout.addWidget(self._printer_fix_panel)
+
         self._remote_panel = _RemotePanel()
         self._remote_panel.hide()
         self._results_layout.addWidget(self._remote_panel)
@@ -795,12 +1095,18 @@ class ScenariosPage(QWidget):
         self._status_lbl.setText("")
         self._discovery_panel.hide()
         self._install_panel.hide()
+        self._printer_selector.hide()
+        self._printer_fix_panel.hide()
         self._remote_panel.hide()
 
         if scenario.id == "add_network_printer":
+            self._ip_section.setVisible(True)
             self._ip_lbl.setText("Printer IP:")
             self._ip_input.setPlaceholderText("e.g. 192.168.1.50")
+        elif scenario.id == "fix_printer_problems":
+            self._ip_section.setVisible(False)
         else:
+            self._ip_section.setVisible(True)
             self._ip_lbl.setText("Target PC IP (optional):")
             self._ip_input.setPlaceholderText("e.g. 192.168.1.100")
 
@@ -816,6 +1122,8 @@ class ScenariosPage(QWidget):
         self._results_panel.clear()
         self._discovery_panel.hide()
         self._install_panel.hide()
+        self._printer_selector.hide()
+        self._printer_fix_panel.hide()
         self._remote_panel.hide()
 
         self._worker = _ScenarioWorker(self._runner, target_ip)
@@ -851,18 +1159,30 @@ class ScenariosPage(QWidget):
                 c.passed and "already installed" in c.label
                 for c in checks
             )
-            # Show discover panel always for printer scenario
             self._discovery_panel.show()
-
             if not already_installed and _is_valid_ipv4(target_ip):
                 self._install_panel.configure(target_ip)
                 self._install_panel.show()
             else:
                 self._install_panel.hide()
+            self._printer_selector.hide()
+            self._printer_fix_panel.hide()
             self._remote_panel.hide()
+
+        elif self._active_scenario.id == "fix_printer_problems":
+            self._discovery_panel.hide()
+            self._install_panel.hide()
+            self._remote_panel.hide()
+            printers = list(result.report.printers.printers) if result.report.printers else []
+            self._printer_selector.configure(printers)
+            self._printer_selector.show()
+            self._printer_fix_panel.hide()
+
         else:
             self._discovery_panel.hide()
             self._install_panel.hide()
+            self._printer_selector.hide()
+            self._printer_fix_panel.hide()
             remote_steps = run_remote_checklist(self._active_scenario)
             if remote_steps:
                 self._remote_panel.set_title("💻 What to check on the other PC")
@@ -875,6 +1195,26 @@ class ScenariosPage(QWidget):
         self._ip_input.setText(ip)
         self._install_panel.configure(ip)
         self._install_panel.show()
+
+    def _on_fix_printer_selected(self, printer_name: str) -> None:
+        if not self._last_result:
+            return
+        checks = run_checks(self._active_scenario, self._last_result, target_name=printer_name)
+        passed = sum(1 for c in checks if c.passed)
+        issues = len(checks) - passed
+        if issues == 0:
+            self._status_lbl.setText(f"✓ All {len(checks)} checks passed.")
+            self._status_lbl.setStyleSheet("color: #3fb950; font-size: 12px;")
+        else:
+            self._status_lbl.setText(f"{issues} issue(s) found — see details below.")
+            self._status_lbl.setStyleSheet("color: #d29922; font-size: 12px;")
+        self._results_panel.show_checks(checks)
+
+        printers = self._last_result.report.printers.printers if self._last_result.report.printers else ()
+        printer = next((p for p in printers if p.name == printer_name), None)
+        job_count = printer.job_count if printer else 0
+        self._printer_fix_panel.configure(printer_name, job_count)
+        self._printer_fix_panel.show()
 
     def _on_go_to_fix(self, _fix_id: str) -> None:
         self.open_fix_center.emit()
