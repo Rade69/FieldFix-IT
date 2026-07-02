@@ -1,0 +1,50 @@
+"""Theme color palettes used by the app-wide stylesheet."""
+
+VALID_THEMES = {"dark", "light"}
+
+DARK = {
+    "app_bg": "#071018",
+    "sidebar_bg": "#081522",
+    "topbar_bg": "#06111b",
+    "card_bg": "#0d1b27",
+    "card_hover": "#101f2e",
+    "input_bg": "#0d1117",
+    "muted_panel": "#0b1d2c",
+    "safety_bg": "#0d2217",
+    "border": "#203447",
+    "border_strong": "#30363d",
+    "border_hover": "#2d5480",
+    "accent": "#0969da",
+    "accent_hover": "#1f8bff",
+    "accent_border": "#58a6ff",
+    "text": "#f0f6fc",
+    "text_heading": "#f0f6fc",
+    "text_secondary": "#c9d1d9",
+    "text_muted": "#9aa4b2",
+    "text_disabled": "#7d8b99",
+    "button_disabled_bg": "#1c2a38",
+    "success": "#3fb950",
+    "success_border": "#1a4731",
+}
+
+LIGHT = {
+    "app_bg": "#F5F7FA",
+    "secondary_bg": "#EEF2F7",
+    "sidebar_bg": "#F8FAFC",
+    "sidebar_hover": "#EEF4FF",
+    "card_bg": "#FFFFFF",
+    "card_hover": "#F8FAFC",
+    "border": "#D8E0EA",
+    "accent": "#2563EB",
+    "accent_hover": "#1D4ED8",
+    "accent_light": "#DBEAFE",
+    "accent_border": "#93C5FD",
+    "text": "#1F2937",
+    "text_heading": "#111827",
+    "text_secondary": "#4B5563",
+    "text_muted": "#334155",
+    "text_disabled": "#6B7280",
+    "button_secondary": "#E5E7EB",
+    "button_secondary_hover": "#D1D5DB",
+    "success": "#16A34A",
+}

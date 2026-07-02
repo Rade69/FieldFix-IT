@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.core.powershell_runner import PowerShellRunner
+from app.gui.styles import secondary_text_style
 from app.gui.widgets.empty_state import info_banner
 from app.modules.network.models import NetworkData
 from app.modules.network.scanner import NetworkScanner, _format_speed
@@ -18,7 +19,7 @@ from app.modules.network.scanner import NetworkScanner, _format_speed
 def _kv_row(key: str, value: str, value_color: str = "") -> QHBoxLayout:
     row = QHBoxLayout()
     key_label = QLabel(key)
-    key_label.setStyleSheet("color: #9aa4b2; min-width: 200px;")
+    key_label.setStyleSheet(secondary_text_style() + " min-width: 200px;")
     key_label.setAlignment(Qt.AlignmentFlag.AlignTop)
     row.addWidget(key_label)
     val_label = QLabel(value)
@@ -65,7 +66,7 @@ class NetworkPage(QWidget):
         header_layout.addStretch(1)
 
         self._status_label = QLabel("Not scanned")
-        self._status_label.setStyleSheet("color: #9aa4b2;")
+        self._status_label.setStyleSheet(secondary_text_style())
         header_layout.addWidget(self._status_label)
         header_layout.addSpacing(12)
 
@@ -87,7 +88,7 @@ class NetworkPage(QWidget):
         self._results_layout.setContentsMargins(0, 8, 0, 8)
 
         placeholder = QLabel("  Click '▶ Run Scan' to collect network information.")
-        placeholder.setStyleSheet("color: #9aa4b2; padding: 24px;")
+        placeholder.setStyleSheet(secondary_text_style() + " padding: 24px;")
         self._results_layout.addWidget(placeholder)
 
         scroll.setWidget(self._results_widget)
@@ -98,7 +99,7 @@ class NetworkPage(QWidget):
         self._display_results(data)
         ts = scanned_at[11:19] if len(scanned_at) >= 19 else ""
         self._status_label.setText(f"From Dashboard scan{f'  {ts}' if ts else ''}")
-        self._status_label.setStyleSheet("color: #9aa4b2;")
+        self._status_label.setStyleSheet(secondary_text_style())
 
     def _run_scan(self) -> None:
         self._scan_btn.setEnabled(False)

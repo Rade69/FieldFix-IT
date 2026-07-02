@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
 
 from app.core.powershell_runner import PowerShellRunner
 from app.core.scan_session import ScanResult
+from app.gui.styles import secondary_text_style
 from app.modules.network.scanner import NetworkScanner
 from app.modules.printers.scanner import PrintersScanner
 from app.modules.services.scanner import ServicesScanner
@@ -67,7 +68,7 @@ class ReportsPage(QWidget):
         h_layout.addStretch(1)
 
         self._status_label = QLabel("Ready")
-        self._status_label.setStyleSheet("color: #9aa4b2;")
+        self._status_label.setStyleSheet(secondary_text_style())
         h_layout.addWidget(self._status_label)
 
         outer.addWidget(header)
@@ -156,8 +157,7 @@ class ReportsPage(QWidget):
         self._preview.setFont(_monospace_font())
         self._preview.setPlaceholderText("Report preview will appear here after generation.")
         self._preview.setStyleSheet(
-            "QPlainTextEdit { background: #F8FAFC; color: #1F2937; "
-            "border: none; font-size: 12px; padding: 12px; }"
+            "QPlainTextEdit { font-size: 12px; padding: 12px; }"
         )
         outer.addWidget(self._preview, stretch=1)
 

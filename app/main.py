@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QApplication
 from app.core.settings import get_settings
 from app.gui.icons import APP_ICON_ICO
 from app.gui.main_window import MainWindow
-from app.gui.theme import get_stylesheet
+from app.gui.styles import get_stylesheet
 
 
 def _set_windows_app_id() -> None:

@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
 
 from app.core.powershell_runner import PowerShellRunner, is_admin, restart_as_admin
 from app.core.risk_level import RiskLevel
+from app.gui.styles import secondary_text_style
 from app.gui.widgets.risk_badge import RiskBadge
 
 
@@ -146,7 +147,7 @@ class _FixActionCard(QFrame):
         meta_row = QHBoxLayout()
         meta_row.addWidget(_muted("What changes:"))
         changes_lbl = QLabel(action.what_it_changes)
-        changes_lbl.setStyleSheet("color: #6B7280; font-size: 11px;")
+        changes_lbl.setStyleSheet(secondary_text_style(size=11))
         meta_row.addWidget(changes_lbl)
         meta_row.addStretch(1)
         if action.requires_admin:
@@ -182,13 +183,13 @@ class _FixActionCard(QFrame):
             self._apply_btn.setStyleSheet(
                 "QPushButton { background: #238636; color: white; border-radius: 4px; padding: 4px 10px; }"
                 "QPushButton:hover { background: #2ea043; }"
-                "QPushButton:disabled { background: #E5E7EB; color: #6B7280; }"
+                "QPushButton:disabled { background: #E5E7EB; color: #4B5563; }"
             )
         else:
             self._apply_btn.setEnabled(False)
             self._apply_btn.setToolTip("Restart app as Administrator to apply fixes.")
             self._apply_btn.setStyleSheet(
-                "QPushButton { background: #E5E7EB; color: #6B7280; border-radius: 4px; padding: 4px 10px; }"
+                "QPushButton { background: #E5E7EB; color: #4B5563; border-radius: 4px; padding: 4px 10px; }"
             )
         action_row.addWidget(self._apply_btn)
         outer.addLayout(action_row)
@@ -209,7 +210,7 @@ class _FixActionCard(QFrame):
 
     def _on_skip(self) -> None:
         self._result_label.setText("⊘ Skipped")
-        self._result_label.setStyleSheet("font-size: 11px; color: #6B7280;")
+        self._result_label.setStyleSheet(secondary_text_style(size=11))
         self._result_label.show()
         self._apply_btn.setEnabled(False)
         self._skip_btn.setEnabled(False)
@@ -256,7 +257,7 @@ class _FixActionCard(QFrame):
 
 def _muted(text: str) -> QLabel:
     lbl = QLabel(text)
-    lbl.setStyleSheet("color: #6B7280; font-size: 11px;")
+    lbl.setStyleSheet(secondary_text_style(size=11))
     return lbl
 
 

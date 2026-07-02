@@ -22,7 +22,7 @@ _IP_RE = re.compile(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}")
 _LEGEND = [
     ("#3fb950", "Online"),
     ("#f85149", "Offline"),
-    ("#6B7280", "Unknown"),
+    ("#9aa4b2", "Unknown"),
     ("#a371f7", "Printer"),
     ("#58a6ff", "Server"),
 ]
@@ -55,7 +55,7 @@ def _nodes_from_scan(
         nodes.append({
             "icon": "🌐", "name": "Router / Gateway", "ip": gateway_ip,
             "tag": "Active" if ok else ("Unreachable" if ok is False else "Unknown"),
-            "tag_color": "#3fb950" if ok else ("#f85149" if ok is False else "#6B7280"),
+            "tag_color": "#3fb950" if ok else ("#f85149" if ok is False else "#9aa4b2"),
         })
 
     # Network printers — use resolved ip_address, fall back to port_name extraction
@@ -79,7 +79,7 @@ def _nodes_from_scan(
         nodes.append({
             "icon": "🖥", "name": entry.ip_address, "ip": entry.ip_address,
             "tag": "Online" if entry.state == "Reachable" else "Unknown",
-            "tag_color": "#3fb950" if entry.state == "Reachable" else "#6B7280",
+            "tag_color": "#3fb950" if entry.state == "Reachable" else "#9aa4b2",
         })
         if len(nodes) >= 8:
             break

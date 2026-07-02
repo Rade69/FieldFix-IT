@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout
 
+from app.gui.styles import TEXT_SECONDARY, secondary_text_style
 from app.reports.models import ScanReport
 
 _STATUS_STYLE = {
@@ -13,7 +14,7 @@ _STATUS_STYLE = {
 
 
 def _row(label: str, value: str, status: str) -> QHBoxLayout:
-    icon, color = _STATUS_STYLE.get(status, ("●", "#6B7280"))
+    icon, color = _STATUS_STYLE.get(status, ("●", TEXT_SECONDARY))
     r = QHBoxLayout()
     r.addWidget(_styled(icon, f"color: {color}; font-weight: bold;"))
     r.addWidget(QLabel(label))
@@ -126,7 +127,7 @@ class RecentScanWidget(QFrame):
         layout.addLayout(self._content)
 
         self._footer = QLabel("Run a scan to see results.")
-        self._footer.setStyleSheet("color: #6B7280; margin-top: 4px;")
+        self._footer.setStyleSheet(secondary_text_style() + " margin-top: 4px;")
         layout.addWidget(self._footer)
 
         self._show_placeholder()

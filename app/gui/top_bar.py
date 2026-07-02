@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLay
 
 from app.core.powershell_runner import PowerShellRunner
 from app.gui.icons import APP_ICON_128
+from app.gui.styles import TEXT_SECONDARY, secondary_text_style
 from app.modules.network.models import NetworkData
 
 
@@ -103,7 +104,7 @@ def _os_display(info: _SysInfo) -> str:
 
 
 def _net_html(name: str, category: str) -> str:
-    cat_color = _CATEGORY_COLOR.get(category, "#6B7280")
+    cat_color = _CATEGORY_COLOR.get(category, TEXT_SECONDARY)
     if not name and not category:
         return "Network: —"
     parts = ["Network:"]
@@ -118,7 +119,7 @@ def _rich(html: str, muted: bool = False) -> QLabel:
     lbl = QLabel(html)
     lbl.setTextFormat(Qt.TextFormat.RichText)
     if muted:
-        lbl.setStyleSheet("color: #6B7280; font-size: 11px;")
+        lbl.setStyleSheet(secondary_text_style(size=11))
     return lbl
 
 

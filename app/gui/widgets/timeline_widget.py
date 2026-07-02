@@ -4,6 +4,8 @@ from typing import NamedTuple
 
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout
 
+from app.gui.styles import secondary_text_style, text_style
+
 
 class TimelineEvent(NamedTuple):
     time: str
@@ -18,7 +20,7 @@ def _build_row(event: TimelineEvent) -> QHBoxLayout:
     row.setSpacing(10)
 
     time_lbl = QLabel(event.time)
-    time_lbl.setStyleSheet("color: #6B7280; font-size: 11px; font-family: monospace;")
+    time_lbl.setStyleSheet(text_style(size=11, family="monospace"))
     time_lbl.setFixedWidth(56)
     row.addWidget(time_lbl)
 
@@ -33,7 +35,7 @@ def _build_row(event: TimelineEvent) -> QHBoxLayout:
     row.addStretch(1)
 
     detail_lbl = QLabel(event.detail)
-    detail_lbl.setStyleSheet("color: #6B7280; font-size: 11px;")
+    detail_lbl.setStyleSheet(secondary_text_style(size=11))
     row.addWidget(detail_lbl)
 
     return row
@@ -77,7 +79,7 @@ class ActivityTimelineWidget(QFrame):
 
     def _placeholder(self) -> None:
         lbl = QLabel("No scan results yet.")
-        lbl.setStyleSheet("color: #6B7280;")
+        lbl.setStyleSheet(secondary_text_style())
         self._content.addWidget(lbl)
 
     def update_data(self, events: list[TimelineEvent]) -> None:

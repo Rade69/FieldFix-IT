@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.core.powershell_runner import PowerShellRunner
+from app.gui.styles import secondary_text_style
 from app.gui.widgets.empty_state import info_banner
 from app.modules.smb.models import SmbData
 from app.modules.smb.scanner import NET_VIEW_ERROR_HINTS, SmbScanner
@@ -19,7 +20,7 @@ from app.modules.smb.scanner import NET_VIEW_ERROR_HINTS, SmbScanner
 def _bool_badge(value: bool | None, true_text: str = "Yes", false_text: str = "No") -> QLabel:
     if value is None:
         label = QLabel("—")
-        label.setStyleSheet("color: #9aa4b2;")
+        label.setStyleSheet(secondary_text_style())
     elif value:
         label = QLabel(f"✓ {true_text}")
         label.setStyleSheet("color: #3fb950; font-weight: bold;")
@@ -32,7 +33,7 @@ def _bool_badge(value: bool | None, true_text: str = "Yes", false_text: str = "N
 def _kv_row(key: str, value_widget: QWidget | None = None, value_str: str = "") -> QHBoxLayout:
     row = QHBoxLayout()
     key_label = QLabel(key)
-    key_label.setStyleSheet("color: #9aa4b2; min-width: 240px;")
+    key_label.setStyleSheet(secondary_text_style() + " min-width: 240px;")
     key_label.setAlignment(Qt.AlignmentFlag.AlignTop)
     row.addWidget(key_label)
     if value_widget:
@@ -82,7 +83,7 @@ class SmbPage(QWidget):
         h_layout.addStretch(1)
 
         ip_label = QLabel("Target IP:")
-        ip_label.setStyleSheet("color: #9aa4b2;")
+        ip_label.setStyleSheet(secondary_text_style())
         h_layout.addWidget(ip_label)
         h_layout.addSpacing(4)
 
@@ -93,7 +94,7 @@ class SmbPage(QWidget):
         h_layout.addSpacing(12)
 
         self._status_label = QLabel("Not scanned")
-        self._status_label.setStyleSheet("color: #9aa4b2;")
+        self._status_label.setStyleSheet(secondary_text_style())
         h_layout.addWidget(self._status_label)
         h_layout.addSpacing(12)
 
@@ -115,7 +116,7 @@ class SmbPage(QWidget):
         self._results_layout.setContentsMargins(0, 8, 0, 8)
 
         placeholder = QLabel("  Click '▶ Run Scan' to collect SMB information.")
-        placeholder.setStyleSheet("color: #9aa4b2; padding: 24px;")
+        placeholder.setStyleSheet(secondary_text_style() + " padding: 24px;")
         self._results_layout.addWidget(placeholder)
 
         scroll.setWidget(self._results_widget)
@@ -126,7 +127,7 @@ class SmbPage(QWidget):
         self._display_results(data)
         ts = scanned_at[11:19] if len(scanned_at) >= 19 else ""
         self._status_label.setText(f"From Dashboard scan{f'  {ts}' if ts else ''}")
-        self._status_label.setStyleSheet("color: #9aa4b2;")
+        self._status_label.setStyleSheet(secondary_text_style())
 
     def _run_scan(self) -> None:
         self._scan_btn.setEnabled(False)
@@ -223,7 +224,7 @@ class SmbPage(QWidget):
                 badge.setStyleSheet("color: #f85149; font-weight: bold;")
             else:
                 badge = QLabel("— Check failed")
-                badge.setStyleSheet("color: #9aa4b2;")
+                badge.setStyleSheet(secondary_text_style())
             layout.addLayout(_kv_row("TCP 445", badge))
             self._results_layout.addWidget(frame)
 

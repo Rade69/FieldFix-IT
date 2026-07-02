@@ -6,6 +6,7 @@ import sys
 
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout
 
+from app.gui.styles import TEXT_SECONDARY, secondary_text_style
 from app.modules.network.models import NetworkData
 
 
@@ -66,7 +67,7 @@ def _get_rows(network: NetworkData | None) -> list[tuple[str, str, str, str]]:
 
     if network.profiles:
         cat = network.profiles[0].category
-        rows.append(("📶", "Network Profile", cat, _CATEGORY_COLOR.get(cat, "#6B7280")))
+        rows.append(("📶", "Network Profile", cat, _CATEGORY_COLOR.get(cat, TEXT_SECONDARY)))
 
     if network.adapters:
         a = network.adapters[0]
@@ -81,7 +82,7 @@ def _build_row(icon: str, key: str, value: str, value_color: str = "") -> QHBoxL
     row = QHBoxLayout()
     icon_label = QLabel(icon)
     key_label = QLabel(key)
-    key_label.setStyleSheet("color: #6B7280;")
+    key_label.setStyleSheet(secondary_text_style())
     value_label = QLabel(value)
     style = "font-weight: bold;"
     if value_color:

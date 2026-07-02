@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.core.powershell_runner import PowerShellRunner
+from app.gui.styles import TEXT_SECONDARY, secondary_text_style
 from app.gui.widgets.empty_state import info_banner
 from app.modules.printers.models import PrintersData
 from app.modules.printers.scanner import PrintersScanner
@@ -28,7 +29,7 @@ def _status_color(status: str) -> str:
         return "#d29922"
     if status:
         return "#f85149"   # Error, Offline, PaperJam, etc.
-    return "#6B7280"
+    return TEXT_SECONDARY
 
 
 def _job_color(status: str) -> str:
@@ -38,7 +39,7 @@ def _job_color(status: str) -> str:
         return "#d29922"
     if status:
         return "#f85149"
-    return "#6B7280"
+    return TEXT_SECONDARY
 
 
 def _panel(title: str) -> tuple[QFrame, QVBoxLayout]:
@@ -80,7 +81,7 @@ class PrintersPage(QWidget):
         h_layout.addStretch(1)
 
         self._status_label = QLabel("Not scanned")
-        self._status_label.setStyleSheet("color: #9aa4b2;")
+        self._status_label.setStyleSheet(secondary_text_style())
         h_layout.addWidget(self._status_label)
         h_layout.addSpacing(12)
 
@@ -102,7 +103,7 @@ class PrintersPage(QWidget):
         self._results_layout.setContentsMargins(0, 8, 0, 8)
 
         placeholder = QLabel("  Click '▶ Run Scan' to list installed printers.")
-        placeholder.setStyleSheet("color: #9aa4b2; padding: 24px;")
+        placeholder.setStyleSheet(secondary_text_style() + " padding: 24px;")
         self._results_layout.addWidget(placeholder)
 
         scroll.setWidget(self._results_widget)
@@ -113,7 +114,7 @@ class PrintersPage(QWidget):
         self._display_results(data)
         ts = scanned_at[11:19] if len(scanned_at) >= 19 else ""
         self._status_label.setText(f"From Dashboard scan{f'  {ts}' if ts else ''}")
-        self._status_label.setStyleSheet("color: #9aa4b2;")
+        self._status_label.setStyleSheet(secondary_text_style())
 
     def _run_scan(self) -> None:
         self._scan_btn.setEnabled(False)
@@ -149,9 +150,9 @@ class PrintersPage(QWidget):
         row = QHBoxLayout()
         for text, color in [
             (f"✓ OK: {ok}", "#3fb950"),
-            (f"⚠ Problem: {problem}", "#f85149" if problem > 0 else "#6B7280"),
-            (f"🖨 Total: {total}", "#6B7280"),
-            (f"📄 Print Jobs: {jobs}", "#d29922" if jobs > 0 else "#6B7280"),
+            (f"⚠ Problem: {problem}", "#f85149" if problem > 0 else TEXT_SECONDARY),
+            (f"🖨 Total: {total}", TEXT_SECONDARY),
+            (f"📄 Print Jobs: {jobs}", "#d29922" if jobs > 0 else TEXT_SECONDARY),
         ]:
             lbl = QLabel(text)
             lbl.setStyleSheet(f"color: {color}; font-weight: bold; margin-right: 20px;")
@@ -180,7 +181,7 @@ class PrintersPage(QWidget):
                 # Type badge
                 type_lbl = QLabel(p.printer_type or "—")
                 type_lbl.setFixedWidth(90)
-                type_lbl.setStyleSheet("color: #9aa4b2;")
+                type_lbl.setStyleSheet(secondary_text_style())
                 prow.addWidget(type_lbl)
 
                 # Status badge

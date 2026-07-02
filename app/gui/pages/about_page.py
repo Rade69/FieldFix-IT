@@ -1,8 +1,27 @@
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QPixmap
+from PySide6.QtGui import QPainter, QPainterPath, QPixmap
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from app.gui.icons import APP_ICON_128
+from app.gui.styles import secondary_text_style
+
+
+def _rounded_pixmap(path, size: int, radius: int) -> QPixmap:
+    src = QPixmap(str(path)).scaled(
+        size, size,
+        Qt.AspectRatioMode.KeepAspectRatio,
+        Qt.TransformationMode.SmoothTransformation,
+    )
+    out = QPixmap(size, size)
+    out.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(out)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    clip = QPainterPath()
+    clip.addRoundedRect(0.0, 0.0, float(size), float(size), float(radius), float(radius))
+    painter.setClipPath(clip)
+    painter.drawPixmap(0, 0, src)
+    painter.end()
+    return out
 
 
 def _centered(text: str, style: str = "") -> QLabel:
@@ -38,9 +57,10 @@ class AboutPage(QWidget):
         layout.setContentsMargins(40, 32, 40, 36)
         layout.setSpacing(10)
 
-        # App icon
+        # App icon — clipped to rounded rect to remove opaque black corners from PNG
         icon_lbl = QLabel()
-        icon_lbl.setPixmap(QPixmap(str(APP_ICON_128)))
+        icon_lbl.setPixmap(_rounded_pixmap(APP_ICON_128, 128, 22))
+        icon_lbl.setStyleSheet("background: transparent;")
         icon_lbl.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         layout.addWidget(icon_lbl)
         layout.addSpacing(4)
@@ -56,7 +76,7 @@ class AboutPage(QWidget):
         ))
         layout.addWidget(_centered(
             "Windows IT Diagnostics & Repair Tool",
-            "color: #9aa4b2; font-size: 13px;",
+            secondary_text_style(size=13),
         ))
 
         layout.addSpacing(8)
@@ -70,7 +90,7 @@ class AboutPage(QWidget):
             "sharing, firewall, services, and printer issues on Windows 10/11 systems.\n\n"
             "The application operates in Read-Only Scan Mode by default — no system "
             "settings are changed without an explicit confirmation in Fix Center.",
-            "color: #6B7280; font-size: 12px; line-height: 1.6;",
+            secondary_text_style(size=12) + " line-height: 1.6;",
         ))
 
         layout.addSpacing(8)
@@ -80,7 +100,7 @@ class AboutPage(QWidget):
         # Creator
         layout.addWidget(_centered(
             "Created by",
-            "color: #6B7280; font-size: 11px;",
+            secondary_text_style(size=11),
         ))
         layout.addWidget(_centered(
             "Radovan Stojanović",
@@ -89,7 +109,7 @@ class AboutPage(QWidget):
         layout.addSpacing(6)
         layout.addWidget(_centered(
             "Built with the assistance of AI coding models",
-            "color: #6B7280; font-size: 11px;",
+            secondary_text_style(size=11),
         ))
 
         ai_row = QHBoxLayout()
@@ -112,7 +132,7 @@ class AboutPage(QWidget):
         # Tech stack
         layout.addWidget(_centered(
             "Python 3.11 · PySide6 (Qt6) · PowerShell · Windows 10/11",
-            "color: #6B7280; font-size: 11px;",
+            secondary_text_style(size=11),
         ))
 
         outer.addSpacing(32)

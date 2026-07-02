@@ -24,7 +24,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.core.settings import AppSettings, get_settings
-from app.gui.theme import get_stylesheet, normalize_theme
+from app.gui.styles import get_stylesheet, normalize_theme, secondary_text_style
 
 
 def _section(title: str) -> tuple[QGroupBox, QVBoxLayout]:
@@ -38,7 +38,7 @@ def _section(title: str) -> tuple[QGroupBox, QVBoxLayout]:
 def _label(text: str, muted: bool = False) -> QLabel:
     lbl = QLabel(text)
     if muted:
-        lbl.setStyleSheet("color: #6B7280; font-size: 11px;")
+        lbl.setStyleSheet(secondary_text_style(size=11))
     return lbl
 
 

@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from PySide6.QtWidgets import QFrame, QLabel, QVBoxLayout
 
+from app.gui.styles import TEXT_SECONDARY, text_style
+
 
 def info_banner(message: str, hint: str = "", level: str = "info") -> QFrame:
     """Inline banner used for empty states, scan errors, and context hints.
@@ -11,7 +13,7 @@ def info_banner(message: str, hint: str = "", level: str = "info") -> QFrame:
     """
     _color = {"info": "#1f6feb", "warning": "#d29922", "error": "#f85149"}
     _icon  = {"info": "ℹ", "warning": "⚠", "error": "✕"}
-    color  = _color.get(level, "#6B7280")
+    color  = _color.get(level, TEXT_SECONDARY)
     icon   = _icon.get(level, "ℹ")
 
     frame = QFrame()
@@ -32,7 +34,7 @@ def info_banner(message: str, hint: str = "", level: str = "info") -> QFrame:
 
     if hint:
         hint_lbl = QLabel(hint)
-        hint_lbl.setStyleSheet("color: #6B7280; font-size: 11px; border: none;")
+        hint_lbl.setStyleSheet(text_style(size=11, border="none"))
         hint_lbl.setWordWrap(True)
         lay.addWidget(hint_lbl)
 

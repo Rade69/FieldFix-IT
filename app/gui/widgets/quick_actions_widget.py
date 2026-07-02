@@ -5,6 +5,7 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLay
 
 from app.core.issue import Issue
 from app.core.risk_level import RiskLevel
+from app.gui.styles import secondary_text_style
 
 _SHIELD_COLOR = {
     RiskLevel.CRITICAL: "#f85149",
@@ -58,7 +59,7 @@ class QuickActionsWidget(QFrame):
 
     def _placeholder(self) -> None:
         lbl = QLabel("Run a scan to see recommended actions.")
-        lbl.setStyleSheet("color: #6B7280;")
+        lbl.setStyleSheet(secondary_text_style())
         self._content.addWidget(lbl)
 
     def _build_row(self, issue: Issue) -> QHBoxLayout:
