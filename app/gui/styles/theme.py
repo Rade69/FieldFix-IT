@@ -274,13 +274,13 @@ QLineEdit, QComboBox, QSpinBox {{
 }}
 
 QSpinBox {{
-    padding-right: 30px;
+    padding-right: 22px;
 }}
 
 QSpinBox::up-button, QSpinBox::down-button {{
     background-color: {DARK["muted_panel"]};
     border-left: 1px solid {DARK["border_strong"]};
-    width: 24px;
+    width: 18px;
     subcontrol-origin: border;
 }}
 
@@ -297,6 +297,24 @@ QSpinBox::down-button {{
 
 QSpinBox::up-button:hover, QSpinBox::down-button:hover {{
     background-color: {DARK["card_hover"]};
+}}
+
+QSpinBox::up-arrow {{
+    image: none;
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-bottom: 5px solid {DARK["text_secondary"]};
+}}
+
+QSpinBox::down-arrow {{
+    image: none;
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid {DARK["text_secondary"]};
 }}
 
 QComboBox {{
@@ -606,13 +624,13 @@ QLineEdit, QComboBox, QSpinBox {{
 }}
 
 QSpinBox {{
-    padding-right: 30px;
+    padding-right: 22px;
 }}
 
 QSpinBox::up-button, QSpinBox::down-button {{
     background-color: {LIGHT["secondary_bg"]};
     border-left: 1px solid {LIGHT["border"]};
-    width: 24px;
+    width: 18px;
     subcontrol-origin: border;
 }}
 
@@ -629,6 +647,24 @@ QSpinBox::down-button {{
 
 QSpinBox::up-button:hover, QSpinBox::down-button:hover {{
     background-color: {LIGHT["button_secondary_hover"]};
+}}
+
+QSpinBox::up-arrow {{
+    image: none;
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-bottom: 5px solid {LIGHT["text_muted"]};
+}}
+
+QSpinBox::down-arrow {{
+    image: none;
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid {LIGHT["text_muted"]};
 }}
 
 QComboBox {{
