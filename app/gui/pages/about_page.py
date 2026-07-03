@@ -36,7 +36,7 @@ def _centered(text: str, style: str = "") -> QLabel:
 def _separator() -> QFrame:
     sep = QFrame()
     sep.setFrameShape(QFrame.Shape.HLine)
-    sep.setStyleSheet("color: #21262d; margin: 4px 0;")
+    sep.setObjectName("SeparatorLine")
     return sep
 
 
@@ -68,7 +68,7 @@ class AboutPage(QWidget):
         # Title + version
         layout.addWidget(_centered(
             "FieldFix IT",
-            "font-size: 22px; font-weight: 800; color: #f0f6fc;",
+            "font-size: 22px; font-weight: 800;",
         ))
         layout.addWidget(_centered(
             "v1.0.0",
@@ -104,7 +104,7 @@ class AboutPage(QWidget):
         ))
         layout.addWidget(_centered(
             "Radovan Stojanović",
-            "font-size: 15px; font-weight: 700; color: #f0f6fc;",
+            "font-size: 15px; font-weight: 700;",
         ))
         layout.addSpacing(6)
         layout.addWidget(_centered(

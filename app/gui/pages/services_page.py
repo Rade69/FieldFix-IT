@@ -164,7 +164,7 @@ class ServicesPage(QWidget):
         # Separator
         sep = QFrame()
         sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setStyleSheet("color: #232a36;")
+        sep.setObjectName("SeparatorLine")
         t_layout.addWidget(sep)
 
         # Service rows

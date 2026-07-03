@@ -196,13 +196,13 @@ class PrintersPage(QWidget):
                 jobs_lbl = QLabel(f"{p.job_count} job(s)" if p.job_count else "No jobs")
                 jobs_lbl.setFixedWidth(80)
                 jobs_lbl.setStyleSheet(
-                    "color: #d29922;" if p.job_count > 0 else "color: #9aa4b2;"
+                    "color: #d29922;" if p.job_count > 0 else secondary_text_style()
                 )
                 prow.addWidget(jobs_lbl)
 
                 # Driver / port info
                 detail_lbl = QLabel(f"{p.driver_name}  |  {p.port_name}")
-                detail_lbl.setStyleSheet("color: #9aa4b2; font-size: 11px;")
+                detail_lbl.setStyleSheet(secondary_text_style(size=11))
                 prow.addWidget(detail_lbl, stretch=1)
 
                 # Fix button for printers with problems
@@ -252,7 +252,7 @@ class PrintersPage(QWidget):
             hdr = QHBoxLayout()
             for txt, w in [("ID", 40), ("Printer", 180), ("Document", 200), ("User", 100), ("Pages", 60), ("Status", 0)]:
                 lbl = QLabel(txt)
-                lbl.setStyleSheet("color: #9aa4b2; font-size: 11px;")
+                lbl.setStyleSheet(secondary_text_style(size=11))
                 if w:
                     lbl.setFixedWidth(w)
                 hdr.addWidget(lbl)
@@ -261,7 +261,7 @@ class PrintersPage(QWidget):
 
             sep = QFrame()
             sep.setFrameShape(QFrame.Shape.HLine)
-            sep.setStyleSheet("color: #232a36;")
+            sep.setObjectName("SeparatorLine")
             layout.addWidget(sep)
 
             for j in data.print_jobs:
@@ -274,7 +274,7 @@ class PrintersPage(QWidget):
 
                 pr_lbl = QLabel(j.printer_name or "—")
                 pr_lbl.setFixedWidth(180)
-                pr_lbl.setStyleSheet("color: #9aa4b2;")
+                pr_lbl.setStyleSheet(secondary_text_style())
                 jrow.addWidget(pr_lbl)
 
                 doc_lbl = QLabel(j.document_name or "—")
@@ -283,12 +283,12 @@ class PrintersPage(QWidget):
 
                 user_lbl = QLabel(j.user_name or "—")
                 user_lbl.setFixedWidth(100)
-                user_lbl.setStyleSheet("color: #9aa4b2;")
+                user_lbl.setStyleSheet(secondary_text_style())
                 jrow.addWidget(user_lbl)
 
                 pages_lbl = QLabel(str(j.total_pages) if j.total_pages is not None else "—")
                 pages_lbl.setFixedWidth(60)
-                pages_lbl.setStyleSheet("color: #9aa4b2;")
+                pages_lbl.setStyleSheet(secondary_text_style())
                 jrow.addWidget(pages_lbl)
 
                 color = _job_color(j.status)

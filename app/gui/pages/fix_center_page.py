@@ -159,7 +159,7 @@ class _FixActionCard(QFrame):
         # Separator
         sep = QFrame()
         sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setStyleSheet("color: #30363d;")
+        sep.setObjectName("SeparatorLine")
         outer.addWidget(sep)
 
         # Action row

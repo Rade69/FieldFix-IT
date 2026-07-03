@@ -34,6 +34,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.core.powershell_runner import PowerShellRunner
+from app.gui.styles import TEXT_SECONDARY, secondary_text_style, text_style
 from app.modules.network.models import ArpEntry, DiscoveredDevice, NetworkData, OsFingerprint
 from app.modules.network.scanner import NetworkScanner
 from app.modules.network.subnet_scanner import SubnetScanner
@@ -135,7 +136,7 @@ def build_nodes(network: NetworkData, printers: PrintersData) -> list[dict]:
             continue
         nodes.append({
             "id": f"printer_{printer_count}",
-            "label": printer.name[:18] if printer.name else "Printer",
+            "label": printer.name[:14] if printer.name else "Printer",
             "sublabel": printer.ip_address or ("★ Default" if printer.is_default else printer.printer_type or ""),
             "node_type": "printer",
             "os": "Printer firmware",
@@ -225,7 +226,7 @@ def _add_node(scene: QGraphicsScene, pos: tuple[float, float], node: dict) -> No
     if sub_text:
         sub_item = QGraphicsTextItem(sub_text)
         sub_item.setFont(QFont("Segoe UI", 7))
-        sub_item.setDefaultTextColor(QColor("#9aa4b2"))
+        sub_item.setDefaultTextColor(QColor(TEXT_SECONDARY))
         sub_item.setTextWidth(_CARD_W - 12)
         sub_item.setPos(x + 6, y + 48)
         sub_item.setZValue(2)
@@ -238,7 +239,7 @@ def _add_node(scene: QGraphicsScene, pos: tuple[float, float], node: dict) -> No
     ]
     detail_item = QGraphicsTextItem("\n".join(detail_lines))
     detail_item.setFont(QFont("Segoe UI", 6))
-    detail_item.setDefaultTextColor(QColor("#9aa4b2"))
+    detail_item.setDefaultTextColor(QColor(TEXT_SECONDARY))
     detail_item.setTextWidth(_CARD_W - 12)
     detail_item.setPos(x + 6, y + 66)
     detail_item.setZValue(2)
@@ -344,7 +345,7 @@ def _badge(text: str, fg: str, bg: str = "") -> QLabel:
 def _section_label(title: str) -> QLabel:
     lbl = QLabel(title)
     lbl.setStyleSheet(
-        "color: #9aa4b2; font-size: 11px; font-weight: bold;"
+        f"color: {TEXT_SECONDARY}; font-size: 11px; font-weight: bold;"
         " padding: 12px 0 4px 0; letter-spacing: 0.5px;"
     )
     return lbl
@@ -354,12 +355,7 @@ def _filter_btn(label: str) -> QPushButton:
     btn = QPushButton(label)
     btn.setCheckable(True)
     btn.setCursor(Qt.CursorShape.PointingHandCursor)
-    btn.setStyleSheet(
-        "QPushButton { background: transparent; border: 1px solid #30363d;"
-        " border-radius: 12px; padding: 3px 12px; font-size: 11px; color: #9aa4b2; }"
-        "QPushButton:checked { border-color: #58a6ff; color: #58a6ff; background: #0a1929; }"
-        "QPushButton:hover:!checked { border-color: #9aa4b2; color: #9aa4b2; }"
-    )
+    btn.setObjectName("FilterPill")
     return btn
 
 
@@ -401,12 +397,12 @@ class _StatCard(QFrame):
         top.addWidget(top_lbl)
         top.addStretch(1)
         self._val = QLabel(value)
-        self._val.setStyleSheet("border: none; color: #f0f6fc; font-size: 13px; font-weight: 800;")
+        self._val.setStyleSheet("border: none; font-size: 13px; font-weight: 800;")
         top.addWidget(self._val)
         lay.addLayout(top)
 
         self._sub = QLabel(sub)
-        self._sub.setStyleSheet("border: none; color: #9aa4b2; font-size: 9px;")
+        self._sub.setStyleSheet(secondary_text_style(size=9) + " border: none;")
         lay.addWidget(self._sub)
 
     def set_value(self, value: str, sub: str = "") -> None:
@@ -420,7 +416,7 @@ _ARP_STATE = {"2": "Reachable", "4": "Stale", "6": "Unreachable", "8": "Incomple
 
 
 _TYPE_ICONS = {"pc": "🖥", "printer": "🖨", "web_device": "🌐", "unknown": "💻"}
-_TYPE_COLORS = {"pc": "#1f6feb", "printer": "#a371f7", "web_device": "#58a6ff", "unknown": "#9aa4b2"}
+_TYPE_COLORS = {"pc": "#1f6feb", "printer": "#a371f7", "web_device": "#58a6ff", "unknown": TEXT_SECONDARY}
 
 
 class _DeviceRow(QFrame):
@@ -443,15 +439,15 @@ class _DeviceRow(QFrame):
         info.setSpacing(1)
         name = dev.hostname or dev.ip_address
         name_lbl = QLabel(name)
-        name_lbl.setStyleSheet("font-weight: bold; font-size: 13px; color: #f0f6fc;")
+        name_lbl.setStyleSheet("font-weight: bold; font-size: 13px;")
         info.addWidget(name_lbl)
         sub_parts = [p for p in (dev.ip_address if dev.hostname else "", dev.mac_address) if p]
         sub_lbl = QLabel("  ·  ".join(sub_parts) or dev.ip_address)
-        sub_lbl.setStyleSheet("color: #9aa4b2; font-size: 11px; font-family: monospace;")
+        sub_lbl.setStyleSheet(secondary_text_style(size=11) + " font-family: monospace;")
         info.addWidget(sub_lbl)
         row.addLayout(info, stretch=1)
 
-        color = _TYPE_COLORS.get(dev.device_type, "#9aa4b2")
+        color = _TYPE_COLORS.get(dev.device_type, TEXT_SECONDARY)
         type_label = dev.device_type.replace("_", " ").title() if dev.device_type != "unknown" else "Unknown"
         row.addWidget(_badge(type_label, color))
 
@@ -486,16 +482,16 @@ class _PrinterRow(QFrame):
         info = QVBoxLayout()
         info.setSpacing(1)
         name_lbl = QLabel(name)
-        name_lbl.setStyleSheet("font-weight: bold; font-size: 13px; color: #f0f6fc;")
+        name_lbl.setStyleSheet("font-weight: bold; font-size: 13px;")
         info.addWidget(name_lbl)
         sub_lbl = QLabel(sub or ip or "—")
-        sub_lbl.setStyleSheet("color: #9aa4b2; font-size: 11px;")
+        sub_lbl.setStyleSheet(secondary_text_style(size=11))
         info.addWidget(sub_lbl)
         row.addLayout(info, stretch=1)
 
         if ip:
             ip_lbl = QLabel(ip)
-            ip_lbl.setStyleSheet("color: #9aa4b2; font-size: 11px; font-family: monospace;")
+            ip_lbl.setStyleSheet(secondary_text_style(size=11) + " font-family: monospace;")
             row.addWidget(ip_lbl)
 
         if status:
@@ -526,14 +522,14 @@ class _NoiseRow(QFrame):
         info = QVBoxLayout()
         info.setSpacing(1)
         ip_lbl = QLabel(entry.ip_address)
-        ip_lbl.setStyleSheet("font-size: 12px; color: #484f58; font-family: monospace;")
+        ip_lbl.setStyleSheet(text_style(size=12, family="monospace"))
         info.addWidget(ip_lbl)
         mac_lbl = QLabel(entry.mac_address or "—")
-        mac_lbl.setStyleSheet("color: #3d444d; font-size: 10px; font-family: monospace;")
+        mac_lbl.setStyleSheet(text_style(size=10, family="monospace"))
         info.addWidget(mac_lbl)
         row.addLayout(info, stretch=1)
 
-        row.addWidget(_badge("multicast/broadcast", "#484f58"))
+        row.addWidget(_badge("multicast/broadcast", TEXT_SECONDARY))
 
 
 class _InventoryView(QWidget):
@@ -598,7 +594,7 @@ class _InventoryView(QWidget):
         self._layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         self._placeholder = QLabel(self._PLACEHOLDER)
-        self._placeholder.setStyleSheet("color: #9aa4b2; font-size: 13px; padding: 40px;")
+        self._placeholder.setStyleSheet(secondary_text_style(size=13) + " padding: 40px;")
         self._placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._layout.addWidget(self._placeholder)
 
@@ -692,7 +688,7 @@ class _InventoryView(QWidget):
                 self._layout.addWidget(self._placeholder)
             else:
                 lbl = QLabel("No devices match the selected filter.")
-                lbl.setStyleSheet("color: #9aa4b2; font-size: 13px; padding: 40px;")
+                lbl.setStyleSheet(secondary_text_style(size=13) + " padding: 40px;")
                 lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 self._layout.addWidget(lbl)
             return
@@ -701,7 +697,7 @@ class _InventoryView(QWidget):
         if all_printers or net_printers:
             self._layout.addWidget(_section_label(f"PRINTERS  ({total_p})"))
             sep = QFrame(); sep.setFrameShape(QFrame.Shape.HLine)
-            sep.setStyleSheet("color: #21262d;")
+            sep.setObjectName("SeparatorLine")
             self._layout.addWidget(sep)
             for p in all_printers:
                 self._layout.addWidget(_PrinterRow(
@@ -722,7 +718,7 @@ class _InventoryView(QWidget):
         if devices:
             self._layout.addWidget(_section_label(f"DEVICES  ({len(devices)})"))
             sep2 = QFrame(); sep2.setFrameShape(QFrame.Shape.HLine)
-            sep2.setStyleSheet("color: #21262d;")
+            sep2.setObjectName("SeparatorLine")
             self._layout.addWidget(sep2)
             for dev in devices:
                 self._layout.addWidget(_DeviceRow(dev))
@@ -732,7 +728,7 @@ class _InventoryView(QWidget):
                 f"📡  Hidden: {len(self._noise)} multicast/broadcast entries"
                 f"  —  click \"Network noise\" to show"
             )
-            noise_lbl.setStyleSheet("color: #484f58; font-size: 11px; padding: 8px 0 4px 0;")
+            noise_lbl.setStyleSheet(secondary_text_style(size=11) + " padding: 8px 0 4px 0;")
             self._layout.addWidget(noise_lbl)
 
         self._layout.addStretch(1)
@@ -740,13 +736,13 @@ class _InventoryView(QWidget):
     def _render_noise(self) -> None:
         if not self._noise:
             lbl = QLabel("No multicast/broadcast entries detected.")
-            lbl.setStyleSheet("color: #9aa4b2; font-size: 13px; padding: 40px;")
+            lbl.setStyleSheet(secondary_text_style(size=13) + " padding: 40px;")
             lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self._layout.addWidget(lbl)
             return
         self._layout.addWidget(_section_label(f"NETWORK NOISE  ({len(self._noise)})"))
         sep = QFrame(); sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setStyleSheet("color: #21262d;")
+        sep.setObjectName("SeparatorLine")
         self._layout.addWidget(sep)
         for entry in self._noise:
             self._layout.addWidget(_NoiseRow(entry))
@@ -785,7 +781,7 @@ class TopologyPage(QWidget):
         h_row.addStretch(1)
 
         self._status_label = QLabel("Not scanned")
-        self._status_label.setStyleSheet("color: #9aa4b2;")
+        self._status_label.setStyleSheet(secondary_text_style())
         h_row.addWidget(self._status_label)
         h_row.addSpacing(12)
 
@@ -796,9 +792,7 @@ class TopologyPage(QWidget):
 
         # ── Tab bar ───────────────────────────────────────────────────────────
         tab_bar = QFrame()
-        tab_bar.setStyleSheet(
-            "QFrame { background: #0d1117; border-bottom: 1px solid #21262d; }"
-        )
+        tab_bar.setObjectName("HeaderBar")
         tab_row = QHBoxLayout(tab_bar)
         tab_row.setContentsMargins(16, 0, 16, 0)
         tab_row.setSpacing(0)
@@ -845,7 +839,7 @@ class TopologyPage(QWidget):
         ]:
             legend_layout.addWidget(_legend_pill(label, _NODE_COLORS[node_type]))
         hint = QLabel("Scroll: zoom  ·  Drag: pan  ·  ⊡ Fit: reset view")
-        hint.setStyleSheet("color: #9aa4b2; font-size: 11px;")
+        hint.setStyleSheet(secondary_text_style(size=11))
         legend_layout.addStretch(1)
         legend_layout.addWidget(hint)
         map_layout.addWidget(legend)
@@ -860,11 +854,11 @@ class TopologyPage(QWidget):
         btn = QPushButton(label)
         btn.setCheckable(True)
         btn.setStyleSheet(
-            "QPushButton { background: transparent; color: #9aa4b2; border: none;"
+            f"QPushButton {{ background: transparent; color: {TEXT_SECONDARY}; border: none;"
             " border-bottom: 2px solid transparent; padding: 8px 16px;"
             " font-size: 13px; }"
-            "QPushButton:checked { color: #f0f6fc; border-bottom: 2px solid #58a6ff; }"
-            "QPushButton:hover:!checked { color: #9aa4b2; }"
+            "QPushButton:checked { color: #58a6ff; border-bottom: 2px solid #58a6ff; }"
+            f"QPushButton:hover:!checked {{ color: {TEXT_SECONDARY}; }}"
         )
         btn.clicked.connect(lambda: self._switch_tab(index))
         return btn
@@ -885,7 +879,7 @@ class TopologyPage(QWidget):
         self._status_label.setText(
             f"From Dashboard scan{f'  {ts}' if ts else ''}  ·  Scan Network for full subnet discovery"
         )
-        self._status_label.setStyleSheet("color: #9aa4b2;")
+        self._status_label.setStyleSheet(secondary_text_style())
 
     # ── Scan ──────────────────────────────────────────────────────────────────
 

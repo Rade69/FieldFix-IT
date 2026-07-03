@@ -99,6 +99,23 @@ QFrame#ScanModeBadge {{
     border-radius: 6px;
 }}
 
+QFrame#SummaryBanner {{
+    background-color: #0a1929;
+    border: none;
+    border-bottom: 1px solid #1f6feb;
+}}
+
+QFrame#SeparatorLine {{
+    color: {DARK["border_strong"]};
+    background-color: {DARK["border_strong"]};
+    max-height: 1px;
+}}
+
+QLabel#SummaryText {{
+    color: #8fc7ff;
+    font-size: 12px;
+}}
+
 QPushButton {{
     background-color: {DARK["accent"]};
     color: white;
@@ -128,6 +145,93 @@ QPushButton#SecondaryButton {{
 QPushButton#SecondaryButton:hover {{
     color: {DARK["text"]};
     border-color: {DARK["accent_border"]};
+}}
+
+QPushButton#SecondaryButton:disabled {{
+    background-color: {DARK["button_disabled_bg"]};
+    color: {DARK["text_disabled"]};
+    border-color: {DARK["border"]};
+}}
+
+QPushButton#PrimaryButton {{
+    background-color: {DARK["accent"]};
+    color: white;
+}}
+
+QPushButton#PrimaryButton:hover {{
+    background-color: {DARK["accent_hover"]};
+}}
+
+QPushButton#AccentButton {{
+    background-color: #0d2840;
+    color: {DARK["accent_border"]};
+    border: 1px solid #1f4060;
+    border-radius: 6px;
+    padding: 5px 14px;
+    font-weight: 600;
+}}
+
+QPushButton#AccentButton:hover {{
+    background-color: #102a4a;
+    border-color: #2d6da8;
+    color: #79b8ff;
+}}
+
+QPushButton#LinkButton {{
+    background: transparent;
+    color: {DARK["text_muted"]};
+    border: none;
+}}
+
+QPushButton#LinkButton:hover {{
+    color: {DARK["accent_border"]};
+}}
+
+QPushButton#FilterPill {{
+    background-color: transparent;
+    color: {DARK["text_muted"]};
+    border: 1px solid {DARK["border_strong"]};
+    border-radius: 12px;
+    padding: 3px 12px;
+    font-size: 11px;
+}}
+
+QPushButton#FilterPill:hover:!checked {{
+    border-color: {DARK["text_muted"]};
+    color: {DARK["text_muted"]};
+}}
+
+QPushButton#FilterPill:checked {{
+    border-color: {DARK["accent_border"]};
+    color: {DARK["accent_border"]};
+    background-color: #0a1929;
+}}
+
+QLabel#VersionBadge {{
+    color: #4b8bbe;
+    background-color: #0d2840;
+    border: 1px solid #1f4060;
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 10px;
+}}
+
+QFrame#ActiveScenarioCard {{
+    background-color: {DARK["card_bg"]};
+    border: 1px solid {DARK["accent"]};
+    border-radius: 8px;
+}}
+
+QFrame#CodeBlock {{
+    background-color: {DARK["input_bg"]};
+    border: 1px solid {DARK["border_strong"]};
+    border-radius: 4px;
+}}
+
+QLabel#CodeText {{
+    color: #79c0ff;
+    font-family: Consolas, monospace;
+    font-size: 11px;
 }}
 
 QFrame#SafetyFrame {{
@@ -169,10 +273,57 @@ QLineEdit, QComboBox, QSpinBox {{
     padding: 4px 8px;
 }}
 
+QSpinBox {{
+    padding-right: 30px;
+}}
+
+QSpinBox::up-button, QSpinBox::down-button {{
+    background-color: {DARK["muted_panel"]};
+    border-left: 1px solid {DARK["border_strong"]};
+    width: 24px;
+    subcontrol-origin: border;
+}}
+
+QSpinBox::up-button {{
+    subcontrol-position: top right;
+    border-bottom: 1px solid {DARK["border"]};
+    border-top-right-radius: 4px;
+}}
+
+QSpinBox::down-button {{
+    subcontrol-position: bottom right;
+    border-bottom-right-radius: 4px;
+}}
+
+QSpinBox::up-button:hover, QSpinBox::down-button:hover {{
+    background-color: {DARK["card_hover"]};
+}}
+
+QComboBox {{
+    padding-right: 30px;
+}}
+
+QComboBox::drop-down {{
+    background-color: {DARK["muted_panel"]};
+    border-left: 1px solid {DARK["border_strong"]};
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+    width: 24px;
+}}
+
+QComboBox::drop-down:hover {{
+    background-color: {DARK["card_hover"]};
+}}
+
 QPlainTextEdit, QTextEdit {{
     background-color: {DARK["input_bg"]};
     color: {DARK["text"]};
     border: none;
+}}
+
+QPlainTextEdit QWidget, QTextEdit QWidget {{
+    background-color: {DARK["input_bg"]};
+    color: {DARK["text"]};
 }}
 
 QStatusBar {{
@@ -279,6 +430,23 @@ QFrame#ScanModeBadge {{
     border-radius: 6px;
 }}
 
+QFrame#SummaryBanner {{
+    background-color: {LIGHT["accent_light"]};
+    border: none;
+    border-bottom: 1px solid {LIGHT["accent_border"]};
+}}
+
+QFrame#SeparatorLine {{
+    color: {LIGHT["border"]};
+    background-color: {LIGHT["border"]};
+    max-height: 1px;
+}}
+
+QLabel#SummaryText {{
+    color: {LIGHT["accent"]};
+    font-size: 12px;
+}}
+
 QPushButton {{
     background-color: {LIGHT["accent"]};
     color: white;
@@ -309,6 +477,93 @@ QPushButton#SecondaryButton:hover {{
     background-color: {LIGHT["button_secondary_hover"]};
     color: {LIGHT["text_heading"]};
     border-color: {LIGHT["accent_border"]};
+}}
+
+QPushButton#SecondaryButton:disabled {{
+    background-color: {LIGHT["button_secondary"]};
+    color: {LIGHT["text_disabled"]};
+    border-color: {LIGHT["border"]};
+}}
+
+QPushButton#PrimaryButton {{
+    background-color: {LIGHT["accent"]};
+    color: white;
+}}
+
+QPushButton#PrimaryButton:hover {{
+    background-color: {LIGHT["accent_hover"]};
+}}
+
+QPushButton#AccentButton {{
+    background-color: {LIGHT["accent_light"]};
+    color: {LIGHT["accent"]};
+    border: 1px solid {LIGHT["accent_border"]};
+    border-radius: 6px;
+    padding: 5px 14px;
+    font-weight: 600;
+}}
+
+QPushButton#AccentButton:hover {{
+    background-color: #EEF4FF;
+    border-color: {LIGHT["accent"]};
+    color: {LIGHT["accent_hover"]};
+}}
+
+QPushButton#LinkButton {{
+    background: transparent;
+    color: {LIGHT["text_muted"]};
+    border: none;
+}}
+
+QPushButton#LinkButton:hover {{
+    color: {LIGHT["accent"]};
+}}
+
+QPushButton#FilterPill {{
+    background-color: transparent;
+    color: {LIGHT["text_secondary"]};
+    border: 1px solid {LIGHT["border"]};
+    border-radius: 12px;
+    padding: 3px 12px;
+    font-size: 11px;
+}}
+
+QPushButton#FilterPill:hover:!checked {{
+    border-color: {LIGHT["accent_border"]};
+    color: {LIGHT["text"]};
+}}
+
+QPushButton#FilterPill:checked {{
+    border-color: {LIGHT["accent"]};
+    color: {LIGHT["accent"]};
+    background-color: {LIGHT["accent_light"]};
+}}
+
+QLabel#VersionBadge {{
+    color: {LIGHT["accent"]};
+    background-color: {LIGHT["accent_light"]};
+    border: 1px solid {LIGHT["accent_border"]};
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 10px;
+}}
+
+QFrame#ActiveScenarioCard {{
+    background-color: {LIGHT["card_bg"]};
+    border: 1px solid {LIGHT["accent"]};
+    border-radius: 8px;
+}}
+
+QFrame#CodeBlock {{
+    background-color: {LIGHT["secondary_bg"]};
+    border: 1px solid {LIGHT["border"]};
+    border-radius: 4px;
+}}
+
+QLabel#CodeText {{
+    color: {LIGHT["accent"]};
+    font-family: Consolas, monospace;
+    font-size: 11px;
 }}
 
 QFrame#SafetyFrame {{
@@ -350,6 +605,48 @@ QLineEdit, QComboBox, QSpinBox {{
     padding: 4px 8px;
 }}
 
+QSpinBox {{
+    padding-right: 30px;
+}}
+
+QSpinBox::up-button, QSpinBox::down-button {{
+    background-color: {LIGHT["secondary_bg"]};
+    border-left: 1px solid {LIGHT["border"]};
+    width: 24px;
+    subcontrol-origin: border;
+}}
+
+QSpinBox::up-button {{
+    subcontrol-position: top right;
+    border-bottom: 1px solid {LIGHT["border"]};
+    border-top-right-radius: 4px;
+}}
+
+QSpinBox::down-button {{
+    subcontrol-position: bottom right;
+    border-bottom-right-radius: 4px;
+}}
+
+QSpinBox::up-button:hover, QSpinBox::down-button:hover {{
+    background-color: {LIGHT["button_secondary_hover"]};
+}}
+
+QComboBox {{
+    padding-right: 30px;
+}}
+
+QComboBox::drop-down {{
+    background-color: {LIGHT["secondary_bg"]};
+    border-left: 1px solid {LIGHT["border"]};
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+    width: 24px;
+}}
+
+QComboBox::drop-down:hover {{
+    background-color: {LIGHT["button_secondary_hover"]};
+}}
+
 QLineEdit:read-only {{
     background-color: {LIGHT["secondary_bg"]};
     color: {LIGHT["text_secondary"]};
@@ -359,6 +656,11 @@ QPlainTextEdit, QTextEdit {{
     background-color: {LIGHT["secondary_bg"]};
     color: {LIGHT["text"]};
     border: none;
+}}
+
+QPlainTextEdit QWidget, QTextEdit QWidget {{
+    background-color: {LIGHT["secondary_bg"]};
+    color: {LIGHT["text"]};
 }}
 
 QStatusBar {{

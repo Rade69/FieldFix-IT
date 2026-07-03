@@ -15,6 +15,7 @@ from app.gui.pages.settings_page import SettingsPage
 from app.gui.pages.smb_page import SmbPage
 from app.gui.pages.topology_page import TopologyPage
 from app.gui.sidebar import Sidebar
+from app.gui.styles import secondary_text_style
 from app.gui.top_bar import TopBar
 
 # Order here defines both the sidebar entries and the stacked page order.
@@ -128,7 +129,7 @@ class MainWindow(QMainWindow):
         bar.addWidget(mode_lbl)
 
         self._sb_status = QLabel("● Ready")
-        self._sb_status.setStyleSheet("color: #9aa4b2; padding: 0 8px;")
+        self._sb_status.setStyleSheet(secondary_text_style() + " padding: 0 8px;")
         bar.addWidget(self._sb_status)
 
         export_btn = QPushButton("📄 Export Report")

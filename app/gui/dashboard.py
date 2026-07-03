@@ -17,6 +17,7 @@ from app.core.powershell_runner import PowerShellRunner
 from app.core.risk_level import RiskLevel
 from app.core.settings import get_settings
 from app.core.scan_session import ScanResult, ScanSession
+from app.gui.styles import secondary_text_style
 from app.gui.widgets.decision_assistant_widget import DecisionAssistantWidget
 from app.gui.widgets.issues_widget import IssuesRecommendationsWidget
 from app.gui.widgets.quick_actions_widget import QuickActionsWidget
@@ -219,7 +220,7 @@ class DashboardPage(QWidget):
         h_layout.addStretch(1)
 
         self._status_label = QLabel("Not scanned yet")
-        self._status_label.setStyleSheet("color: #9aa4b2;")
+        self._status_label.setStyleSheet(secondary_text_style())
         h_layout.addWidget(self._status_label)
         h_layout.addSpacing(12)
 
@@ -230,14 +231,12 @@ class DashboardPage(QWidget):
         outer.addWidget(header)
 
         self._summary_banner = QFrame()
-        self._summary_banner.setStyleSheet(
-            "QFrame { background: #0a1929; border-bottom: 1px solid #1f6feb; }"
-        )
+        self._summary_banner.setObjectName("SummaryBanner")
         summary_layout = QHBoxLayout(self._summary_banner)
         summary_layout.setContentsMargins(16, 7, 16, 7)
         self._summary_label = QLabel("")
+        self._summary_label.setObjectName("SummaryText")
         self._summary_label.setWordWrap(True)
-        self._summary_label.setStyleSheet("color: #8fc7ff; font-size: 12px;")
         summary_layout.addWidget(self._summary_label)
         self._summary_banner.hide()
         outer.addWidget(self._summary_banner)

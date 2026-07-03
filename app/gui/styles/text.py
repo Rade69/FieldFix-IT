@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-from app.gui.styles.palette import DARK
-
-TEXT_PRIMARY = DARK["text"]
-TEXT_HEADING = DARK["text_heading"]
-TEXT_SECONDARY = DARK["text_secondary"]
-TEXT_DISABLED = DARK["text_disabled"]
+TEXT_PRIMARY = "#1F2937"
+TEXT_HEADING = "#111827"
+TEXT_SECONDARY = "#64748B"
+TEXT_DISABLED = "#6B7280"
 
 
 def text_style(

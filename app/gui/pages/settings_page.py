@@ -151,7 +151,7 @@ class SettingsPage(QWidget):
 
         sep = QFrame()
         sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setStyleSheet("color: #21262d;")
+        sep.setObjectName("SeparatorLine")
         layout.addWidget(sep)
 
         # Timeout
@@ -249,7 +249,7 @@ class SettingsPage(QWidget):
 
         sep = QFrame()
         sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setStyleSheet("color: #21262d;")
+        sep.setObjectName("SeparatorLine")
         layout.addWidget(sep)
 
         # Confirm before apply — read-only

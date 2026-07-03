@@ -22,7 +22,7 @@ _IP_RE = re.compile(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}")
 _LEGEND = [
     ("#3fb950", "Online"),
     ("#f85149", "Offline"),
-    ("#9aa4b2", "Unknown"),
+    ("#64748B", "Unknown"),
     ("#a371f7", "Printer"),
     ("#58a6ff", "Server"),
 ]
@@ -55,7 +55,7 @@ def _nodes_from_scan(
         nodes.append({
             "icon": "🌐", "name": "Router / Gateway", "ip": gateway_ip,
             "tag": "Active" if ok else ("Unreachable" if ok is False else "Unknown"),
-            "tag_color": "#3fb950" if ok else ("#f85149" if ok is False else "#9aa4b2"),
+            "tag_color": "#3fb950" if ok else ("#f85149" if ok is False else "#64748B"),
         })
 
     # Network printers — use resolved ip_address, fall back to port_name extraction
@@ -79,7 +79,7 @@ def _nodes_from_scan(
         nodes.append({
             "icon": "🖥", "name": entry.ip_address, "ip": entry.ip_address,
             "tag": "Online" if entry.state == "Reachable" else "Unknown",
-            "tag_color": "#3fb950" if entry.state == "Reachable" else "#9aa4b2",
+            "tag_color": "#3fb950" if entry.state == "Reachable" else "#64748B",
         })
         if len(nodes) >= 8:
             break
@@ -105,7 +105,7 @@ def _build_node(icon: str, name: str, ip: str, tag: str, tag_color: str) -> QFra
     layout.addWidget(name_lbl)
 
     ip_lbl = QLabel(ip or "—")
-    ip_lbl.setStyleSheet("color: #9aa4b2; font-size: 11px;")
+    ip_lbl.setStyleSheet("color: #64748B; font-size: 11px;")
     layout.addWidget(ip_lbl)
 
     tag_lbl = QLabel(tag)
@@ -129,7 +129,7 @@ def _build_legend() -> QHBoxLayout:
         dot = QLabel("●")
         dot.setStyleSheet(f"color: {color};")
         text = QLabel(label)
-        text.setStyleSheet("color: #9aa4b2;")
+        text.setStyleSheet("color: #64748B;")
         row.addWidget(dot)
         row.addWidget(text)
         row.addSpacing(12)
@@ -168,11 +168,7 @@ class NetworkTopologyWidget(QFrame):
         header_row.addStretch(1)
         refresh_btn = QPushButton("⟳ Refresh")
         refresh_btn.setFlat(True)
-        refresh_btn.setStyleSheet(
-            "QPushButton { color: #58a6ff; background: transparent; border: none;"
-            " padding: 0; font-size: 12px; }"
-            "QPushButton:hover { color: #79b8ff; }"
-        )
+        refresh_btn.setObjectName("LinkButton")
         refresh_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         refresh_btn.clicked.connect(self.open_topology)
         header_row.addWidget(refresh_btn)
@@ -198,11 +194,7 @@ class NetworkTopologyWidget(QFrame):
         bottom_row = QHBoxLayout()
         bottom_row.addLayout(_build_legend())
         open_map_btn = QPushButton("🗺  Open Network Map")
-        open_map_btn.setStyleSheet(
-            "QPushButton { background-color: #0d2840; color: #58a6ff; border: 1px solid #1f4060;"
-            " border-radius: 6px; padding: 5px 14px; font-weight: 600; }"
-            "QPushButton:hover { background-color: #102a4a; border-color: #2d6da8; color: #79b8ff; }"
-        )
+        open_map_btn.setObjectName("AccentButton")
         open_map_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         open_map_btn.clicked.connect(self.open_topology)
         bottom_row.addWidget(open_map_btn)
@@ -210,7 +202,7 @@ class NetworkTopologyWidget(QFrame):
 
     def _show_placeholder(self) -> None:
         lbl = QLabel("Run a scan to see network devices.")
-        lbl.setStyleSheet("color: #9aa4b2; padding: 20px;")
+        lbl.setStyleSheet("color: #64748B; padding: 20px;")
         lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._nodes_row.addWidget(lbl)
         self._nodes_row.addStretch(1)
@@ -230,7 +222,7 @@ class NetworkTopologyWidget(QFrame):
 
         if not nodes:
             lbl = QLabel("No network devices found.")
-            lbl.setStyleSheet("color: #9aa4b2;")
+            lbl.setStyleSheet("color: #64748B;")
             self._nodes_row.addWidget(lbl)
             self._nodes_row.addStretch(1)
             return

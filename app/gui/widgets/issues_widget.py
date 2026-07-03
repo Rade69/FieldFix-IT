@@ -81,11 +81,7 @@ class IssuesRecommendationsWidget(QFrame):
         header_row.addStretch(1)
         view_all_btn = QPushButton("View all")
         view_all_btn.setFlat(True)
-        view_all_btn.setStyleSheet(
-            "QPushButton { color: #58a6ff; background: transparent; border: none;"
-            " padding: 0; font-size: 12px; }"
-            "QPushButton:hover { color: #79b8ff; text-decoration: underline; }"
-        )
+        view_all_btn.setObjectName("LinkButton")
         view_all_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         view_all_btn.clicked.connect(self.open_fix_center)
         header_row.addWidget(view_all_btn)

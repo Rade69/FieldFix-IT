@@ -179,10 +179,7 @@ class TopBar(QFrame):
         title_lbl.setStyleSheet("font-size: 22px; font-weight: 800;")
         title_row.addWidget(title_lbl)
         ver_lbl = QLabel("v1.0.0")
-        ver_lbl.setStyleSheet(
-            "font-size: 10px; color: #4b8bbe; background: #0d2840;"
-            " border: 1px solid #1f4060; border-radius: 4px; padding: 1px 5px;"
-        )
+        ver_lbl.setObjectName("VersionBadge")
         ver_lbl.setAlignment(Qt.AlignmentFlag.AlignBottom)
         title_row.addWidget(ver_lbl)
         title_row.addStretch(1)
@@ -235,10 +232,7 @@ class TopBar(QFrame):
         layout.addSpacing(16)
 
         settings_btn = QPushButton("⚙ Settings")
-        settings_btn.setStyleSheet(
-            "QPushButton { background: transparent; color: #6e7781; border: none; }"
-            "QPushButton:hover { color: #2563EB; }"
-        )
+        settings_btn.setObjectName("LinkButton")
         settings_btn.clicked.connect(self.open_settings)
         layout.addWidget(settings_btn)
         layout.addSpacing(16)

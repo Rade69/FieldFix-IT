@@ -13,11 +13,12 @@ def _json_fail(stderr: str = "") -> CommandResult:
     return CommandResult(command="cmd", exit_code=1, stderr=stderr)
 
 
-def _make_scanner(default=None, printers=None, jobs=None) -> PrintersScanner:
-    """Build scanner with mocked run_json side_effect order: default, printers, jobs."""
+def _make_scanner(default=None, ports=None, printers=None, jobs=None) -> PrintersScanner:
+    """Build scanner with mocked run_json side_effect order: default, ports, printers, jobs."""
     runner = MagicMock()
     runner.run_json.side_effect = [
         default if default is not None else _json_fail(),
+        ports if ports is not None else _json_ok({}),
         printers if printers is not None else _json_fail(),
         jobs if jobs is not None else _json_ok(None),
     ]
