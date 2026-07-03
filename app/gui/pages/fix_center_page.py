@@ -268,7 +268,20 @@ class FixCenterPage(QWidget):
         super().__init__()
         self._runner = PowerShellRunner()
         self._is_admin = is_admin()
+        self._fix_cards: dict[str, _FixActionCard] = {}
+        self._scroll: QScrollArea | None = None
         self._setup_ui()
+
+    def scroll_to_fix(self, fix_id: str) -> None:
+        """Navigate to and briefly highlight the fix card matching fix_id."""
+        card = self._fix_cards.get(fix_id)
+        if not card or not self._scroll:
+            return
+        self._scroll.ensureWidgetVisible(card)
+        orig = card.styleSheet()
+        card.setStyleSheet(orig + " border: 1px solid #58a6ff;")
+        from PySide6.QtCore import QTimer
+        QTimer.singleShot(1800, lambda: card.setStyleSheet(orig))
 
     def _setup_ui(self) -> None:
         outer = QVBoxLayout(self)
@@ -334,9 +347,9 @@ class FixCenterPage(QWidget):
             outer.addWidget(banner)
 
         # ── Scrollable action list ──────────────────────────────────────────
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self._scroll = QScrollArea()
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setFrameShape(QFrame.Shape.NoFrame)
 
         content = QWidget()
         content_layout = QVBoxLayout(content)
@@ -344,10 +357,10 @@ class FixCenterPage(QWidget):
         content_layout.setSpacing(8)
 
         for action in _AVAILABLE_FIXES:
-            content_layout.addWidget(
-                _FixActionCard(action, self._runner, self._is_admin)
-            )
+            card = _FixActionCard(action, self._runner, self._is_admin)
+            self._fix_cards[action.id] = card
+            content_layout.addWidget(card)
 
         content_layout.addStretch(1)
-        scroll.setWidget(content)
-        outer.addWidget(scroll, stretch=1)
+        self._scroll.setWidget(content)
+        outer.addWidget(self._scroll, stretch=1)

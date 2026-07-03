@@ -59,7 +59,9 @@ class MainWindow(QMainWindow):
             self.sidebar.setCurrentRow(idx)
 
         _fix_idx = next(i for i, (n, _) in enumerate(_PAGES) if n == "Fix Center")
+        _fix_center = _instances[_fix_idx]
         _instances[0].open_fix_center.connect(lambda: _go(_fix_idx))
+        _instances[0].open_fix.connect(lambda fid: (_go(_fix_idx), _fix_center.scroll_to_fix(fid)))
 
         _scen_idx = next(i for i, (n, _) in enumerate(_PAGES) if n == "Scenarios")
         _instances[_scen_idx].open_fix_center.connect(lambda: _go(_fix_idx))

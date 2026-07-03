@@ -190,6 +190,7 @@ class DashboardPage(QWidget):
     """Dashboard with real scan data from Faza 11 onwards."""
 
     open_fix_center = Signal()
+    open_fix = Signal(str)  # fix_id — navigate directly to a specific fix card
     open_topology = Signal()
     scan_completed = Signal(object)  # emits ScanResult after every successful scan
 
@@ -282,6 +283,7 @@ class DashboardPage(QWidget):
         issues_col.setSpacing(8)
         self._issues_widget = IssuesRecommendationsWidget()
         self._issues_widget.open_fix_center.connect(self.open_fix_center)
+        self._issues_widget.open_fix.connect(self.open_fix)
         self._quick_actions_widget = QuickActionsWidget()
         self._quick_actions_widget.open_fix_center.connect(self.open_fix_center)
         issues_col.addWidget(self._issues_widget, stretch=1)

@@ -3,14 +3,18 @@ from __future__ import annotations
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
 
+from app.core.issue import Issue
+from app.core.risk_level import RiskLevel
+from app.gui.styles import TEXT_SECONDARY, secondary_text_style
+
 _ROW_STYLE = (
     "QFrame#IssueRow { border-radius: 6px; padding: 2px; }"
     "QFrame#IssueRow:hover { background-color: #101f2e; }"
 )
-
-from app.core.issue import Issue
-from app.core.risk_level import RiskLevel
-from app.gui.styles import TEXT_SECONDARY, secondary_text_style
+_ROW_STYLE_FIXABLE = (
+    "QFrame#IssueRow { border-radius: 6px; padding: 2px; border-left: 2px solid #238636; }"
+    "QFrame#IssueRow:hover { background-color: #101f2e; }"
+)
 
 _SEVERITY_COLOR = {
     RiskLevel.CRITICAL: "#f85149",
@@ -20,10 +24,11 @@ _SEVERITY_COLOR = {
 }
 
 
-def _build_row(color: str, title: str, description: str) -> QFrame:
+def _build_row(color: str, title: str, description: str,
+               fix_id: str | None = None, on_fix=None) -> QFrame:
     wrapper = QFrame()
     wrapper.setObjectName("IssueRow")
-    wrapper.setStyleSheet(_ROW_STYLE)
+    wrapper.setStyleSheet(_ROW_STYLE_FIXABLE if fix_id else _ROW_STYLE)
 
     row = QHBoxLayout(wrapper)
     row.setContentsMargins(4, 4, 4, 4)
@@ -44,13 +49,26 @@ def _build_row(color: str, title: str, description: str) -> QFrame:
     text_col.addWidget(t)
     text_col.addWidget(d)
 
-    chevron = QLabel("›")
-    chevron.setStyleSheet("color: #4b5566; font-size: 16px;")
-    chevron.setAlignment(Qt.AlignmentFlag.AlignVCenter)
-
     row.addWidget(dot)
     row.addLayout(text_col, stretch=1)
-    row.addWidget(chevron)
+
+    if fix_id and on_fix:
+        fix_btn = QPushButton("→ Fix")
+        fix_btn.setFixedWidth(54)
+        fix_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        fix_btn.setStyleSheet(
+            "QPushButton { background: #238636; color: white; border-radius: 4px;"
+            " padding: 2px 8px; font-size: 11px; font-weight: 600; border: none; }"
+            "QPushButton:hover { background: #2ea043; }"
+        )
+        fix_btn.clicked.connect(lambda _checked=False, fid=fix_id: on_fix(fid))
+        row.addWidget(fix_btn)
+    else:
+        chevron = QLabel("›")
+        chevron.setStyleSheet("color: #4b5566; font-size: 16px;")
+        chevron.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+        row.addWidget(chevron)
+
     return wrapper
 
 
@@ -67,6 +85,7 @@ class IssuesRecommendationsWidget(QFrame):
     """Issues & Recommendations panel. Populated by update_data() after scan."""
 
     open_fix_center = Signal()
+    open_fix = Signal(str)  # fix_id — navigate directly to a specific fix card
 
     def __init__(self) -> None:
         super().__init__()
@@ -113,4 +132,7 @@ class IssuesRecommendationsWidget(QFrame):
         for issue in issues[:6]:  # show top 6 in Dashboard panel
             c = _SEVERITY_COLOR.get(issue.severity, TEXT_SECONDARY)
             desc = issue.likely_cause or (issue.evidence[0] if issue.evidence else "")
-            self._content.addWidget(_build_row(c, issue.title, desc))
+            self._content.addWidget(
+                _build_row(c, issue.title, desc, issue.fix_id,
+                           on_fix=self.open_fix.emit if issue.fix_id else None)
+            )

@@ -93,6 +93,7 @@ class DecisionEngine:
                     confidence="High",
                     recommended_actions=["Change to Private: Set-NetConnectionProfile -InterfaceAlias '...' -NetworkCategory Private"],
                     related_module="network",
+                    fix_id="SET_NETWORK_PRIVATE",
                 ))
 
         return issues
@@ -154,6 +155,7 @@ class DecisionEngine:
                     "Verify Server (LanmanServer) service is running on target.",
                 ],
                 related_module="smb",
+                fix_id="ENABLE_FILE_PRINTER_SHARING",
             ))
 
         _net_view_rules = {
@@ -218,6 +220,7 @@ class DecisionEngine:
                     "On target: verify Server (LanmanServer) service is Running.",
                 ],
                 related_module="smb",
+                fix_id="ENABLE_FILE_PRINTER_SHARING",
             ))
 
         # net view 6118 + port 445 ok = browsing problem, not SMB connectivity problem
@@ -238,6 +241,7 @@ class DecisionEngine:
                     "Enable 'Network Discovery' firewall rules on target.",
                 ],
                 related_module="smb",
+                fix_id="ENABLE_NETWORK_DISCOVERY",
             ))
 
         return issues
@@ -247,37 +251,42 @@ class DecisionEngine:
     def _analyze_services(self, svc: ServicesData) -> list[Issue]:
         issues: list[Issue] = []
 
-        _service_rules: dict[str, tuple[RiskLevel, str, list[str]]] = {
+        _service_rules: dict[str, tuple[RiskLevel, str, list[str], str | None]] = {
             "LanmanServer": (
                 RiskLevel.HIGH,
                 "Server service stopped — file and printer sharing unavailable",
                 ["Start-Service LanmanServer", "Set-Service LanmanServer -StartupType Automatic"],
+                None,
             ),
             "LanmanWorkstation": (
                 RiskLevel.HIGH,
                 "Workstation service stopped — cannot connect to network shares",
                 ["Start-Service LanmanWorkstation", "Set-Service LanmanWorkstation -StartupType Automatic"],
+                None,
             ),
             "Spooler": (
                 RiskLevel.MEDIUM,
                 "Print Spooler stopped — printing not available",
                 ["Start-Service Spooler", "Set-Service Spooler -StartupType Automatic"],
+                "START_PRINT_SPOOLER",
             ),
             "FDResPub": (
                 RiskLevel.LOW,
                 "FDResPub stopped — this PC not visible in Network Discovery",
                 ["Start-Service FDResPub"],
+                "START_FDRESPUB",
             ),
             "fdPHost": (
                 RiskLevel.LOW,
                 "fdPHost stopped — may affect network device discovery",
                 ["Start-Service fdPHost"],
+                None,
             ),
         }
 
         for s in svc.services:
             if s.name in _service_rules and s.status == "Stopped":
-                severity, title, actions = _service_rules[s.name]
+                severity, title, actions, fix_id = _service_rules[s.name]
                 issues.append(Issue(
                     id=f"SERVICE_STOPPED_{s.name.upper()}",
                     title=title,
@@ -287,6 +296,7 @@ class DecisionEngine:
                     confidence="High",
                     recommended_actions=actions,
                     related_module="services",
+                    fix_id=fix_id,
                 ))
 
         return issues
