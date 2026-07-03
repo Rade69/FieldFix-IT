@@ -9,3 +9,8 @@ dist/
 *.spec.bak
 .pytest_cache/
 *.egg-info/
+
+# AI agent instructions — local only, not for public repo
+AGENTS.md
+CLAUDE.md
+.claude/
