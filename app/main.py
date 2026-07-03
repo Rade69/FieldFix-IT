@@ -3,9 +3,10 @@ import sys
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
+from app.core.settings import get_settings
 from app.gui.icons import APP_ICON_ICO
 from app.gui.main_window import MainWindow
-from app.gui.theme import DARK_STYLESHEET
+from app.gui.styles import get_stylesheet
 
 
 def _set_windows_app_id() -> None:
@@ -26,7 +27,7 @@ def main() -> None:
     app = QApplication(sys.argv)
     app.setApplicationName("FieldFix IT")
     app.setWindowIcon(QIcon(str(APP_ICON_ICO)))
-    app.setStyleSheet(DARK_STYLESHEET)
+    app.setStyleSheet(get_stylesheet(get_settings().theme))
     window = MainWindow()
     window.show()
     sys.exit(app.exec())

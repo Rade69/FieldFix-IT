@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -10,6 +10,8 @@ from PySide6.QtWidgets import (
 )
 
 from app.core.powershell_runner import PowerShellRunner
+from app.gui.styles import TEXT_SECONDARY, secondary_text_style
+from app.gui.widgets.empty_state import info_banner
 from app.modules.printers.models import PrintersData
 from app.modules.printers.scanner import PrintersScanner
 
@@ -27,7 +29,7 @@ def _status_color(status: str) -> str:
         return "#d29922"
     if status:
         return "#f85149"   # Error, Offline, PaperJam, etc.
-    return "#9aa4b2"
+    return TEXT_SECONDARY
 
 
 def _job_color(status: str) -> str:
@@ -37,7 +39,7 @@ def _job_color(status: str) -> str:
         return "#d29922"
     if status:
         return "#f85149"
-    return "#9aa4b2"
+    return TEXT_SECONDARY
 
 
 def _panel(title: str) -> tuple[QFrame, QVBoxLayout]:
@@ -54,6 +56,8 @@ def _panel(title: str) -> tuple[QFrame, QVBoxLayout]:
 
 class PrintersPage(QWidget):
     """Printers diagnostics page. Shows installed printers and pending print jobs."""
+
+    fix_printer_requested = Signal(str)   # printer name
 
     def __init__(self) -> None:
         super().__init__()
@@ -77,7 +81,7 @@ class PrintersPage(QWidget):
         h_layout.addStretch(1)
 
         self._status_label = QLabel("Not scanned")
-        self._status_label.setStyleSheet("color: #9aa4b2;")
+        self._status_label.setStyleSheet(secondary_text_style())
         h_layout.addWidget(self._status_label)
         h_layout.addSpacing(12)
 
@@ -99,11 +103,18 @@ class PrintersPage(QWidget):
         self._results_layout.setContentsMargins(0, 8, 0, 8)
 
         placeholder = QLabel("  Click '▶ Run Scan' to list installed printers.")
-        placeholder.setStyleSheet("color: #9aa4b2; padding: 24px;")
+        placeholder.setStyleSheet(secondary_text_style() + " padding: 24px;")
         self._results_layout.addWidget(placeholder)
 
         scroll.setWidget(self._results_widget)
         outer.addWidget(scroll, stretch=1)
+
+    def load_data(self, data: PrintersData, scanned_at: str = "") -> None:
+        """Populate page with data from a shared Dashboard scan (no re-scan)."""
+        self._display_results(data)
+        ts = scanned_at[11:19] if len(scanned_at) >= 19 else ""
+        self._status_label.setText(f"From Dashboard scan{f'  {ts}' if ts else ''}")
+        self._status_label.setStyleSheet(secondary_text_style())
 
     def _run_scan(self) -> None:
         self._scan_btn.setEnabled(False)
@@ -139,9 +150,9 @@ class PrintersPage(QWidget):
         row = QHBoxLayout()
         for text, color in [
             (f"✓ OK: {ok}", "#3fb950"),
-            (f"⚠ Problem: {problem}", "#f85149" if problem > 0 else "#9aa4b2"),
-            (f"🖨 Total: {total}", "#9aa4b2"),
-            (f"📄 Print Jobs: {jobs}", "#d29922" if jobs > 0 else "#9aa4b2"),
+            (f"⚠ Problem: {problem}", "#f85149" if problem > 0 else TEXT_SECONDARY),
+            (f"🖨 Total: {total}", TEXT_SECONDARY),
+            (f"📄 Print Jobs: {jobs}", "#d29922" if jobs > 0 else TEXT_SECONDARY),
         ]:
             lbl = QLabel(text)
             lbl.setStyleSheet(f"color: {color}; font-weight: bold; margin-right: 20px;")
@@ -170,7 +181,7 @@ class PrintersPage(QWidget):
                 # Type badge
                 type_lbl = QLabel(p.printer_type or "—")
                 type_lbl.setFixedWidth(90)
-                type_lbl.setStyleSheet("color: #9aa4b2;")
+                type_lbl.setStyleSheet(secondary_text_style())
                 prow.addWidget(type_lbl)
 
                 # Status badge
@@ -185,14 +196,29 @@ class PrintersPage(QWidget):
                 jobs_lbl = QLabel(f"{p.job_count} job(s)" if p.job_count else "No jobs")
                 jobs_lbl.setFixedWidth(80)
                 jobs_lbl.setStyleSheet(
-                    "color: #d29922;" if p.job_count > 0 else "color: #9aa4b2;"
+                    "color: #d29922;" if p.job_count > 0 else secondary_text_style()
                 )
                 prow.addWidget(jobs_lbl)
 
                 # Driver / port info
                 detail_lbl = QLabel(f"{p.driver_name}  |  {p.port_name}")
-                detail_lbl.setStyleSheet("color: #9aa4b2; font-size: 11px;")
+                detail_lbl.setStyleSheet(secondary_text_style(size=11))
                 prow.addWidget(detail_lbl, stretch=1)
+
+                # Fix button for printers with problems
+                has_problem = p.status not in _STATUS_OK or p.job_count > 0
+                if has_problem:
+                    fix_btn = QPushButton("🔧 Fix")
+                    fix_btn.setFixedWidth(65)
+                    fix_btn.setStyleSheet(
+                        "QPushButton { background: #b45309; color: white; border-radius: 4px;"
+                        " padding: 3px 8px; font-size: 11px; font-weight: bold; }"
+                        "QPushButton:hover { background: #d97706; }"
+                    )
+                    fix_btn.setToolTip(f"Open Fix Printer scenario for: {p.name}")
+                    name = p.name
+                    fix_btn.clicked.connect(lambda _=False, n=name: self.fix_printer_requested.emit(n))
+                    prow.addWidget(fix_btn)
 
                 layout.addLayout(prow)
 
@@ -200,7 +226,22 @@ class PrintersPage(QWidget):
 
         else:
             frame, layout = _panel("🖨 Installed Printers")
-            layout.addWidget(QLabel("No printers found."))
+            spooler_err = any(
+                "spooler" in e.lower() or "get-printer" in e.lower()
+                for e in data.errors
+            )
+            if spooler_err:
+                layout.addWidget(info_banner(
+                    "Printer scan failed — Print Spooler service may not be running.",
+                    hint="Go to Fix Center → Start Print Spooler to fix this.",
+                    level="error",
+                ))
+            else:
+                layout.addWidget(info_banner(
+                    "No printers installed on this computer.",
+                    hint="Connect a printer or install a driver to see it here.",
+                    level="info",
+                ))
             self._results_layout.addWidget(frame)
 
         # ── Print jobs (only if any) ─────────────────────────────────────────
@@ -211,7 +252,7 @@ class PrintersPage(QWidget):
             hdr = QHBoxLayout()
             for txt, w in [("ID", 40), ("Printer", 180), ("Document", 200), ("User", 100), ("Pages", 60), ("Status", 0)]:
                 lbl = QLabel(txt)
-                lbl.setStyleSheet("color: #9aa4b2; font-size: 11px;")
+                lbl.setStyleSheet(secondary_text_style(size=11))
                 if w:
                     lbl.setFixedWidth(w)
                 hdr.addWidget(lbl)
@@ -220,7 +261,7 @@ class PrintersPage(QWidget):
 
             sep = QFrame()
             sep.setFrameShape(QFrame.Shape.HLine)
-            sep.setStyleSheet("color: #232a36;")
+            sep.setObjectName("SeparatorLine")
             layout.addWidget(sep)
 
             for j in data.print_jobs:
@@ -233,7 +274,7 @@ class PrintersPage(QWidget):
 
                 pr_lbl = QLabel(j.printer_name or "—")
                 pr_lbl.setFixedWidth(180)
-                pr_lbl.setStyleSheet("color: #9aa4b2;")
+                pr_lbl.setStyleSheet(secondary_text_style())
                 jrow.addWidget(pr_lbl)
 
                 doc_lbl = QLabel(j.document_name or "—")
@@ -242,12 +283,12 @@ class PrintersPage(QWidget):
 
                 user_lbl = QLabel(j.user_name or "—")
                 user_lbl.setFixedWidth(100)
-                user_lbl.setStyleSheet("color: #9aa4b2;")
+                user_lbl.setStyleSheet(secondary_text_style())
                 jrow.addWidget(user_lbl)
 
                 pages_lbl = QLabel(str(j.total_pages) if j.total_pages is not None else "—")
                 pages_lbl.setFixedWidth(60)
-                pages_lbl.setStyleSheet("color: #9aa4b2;")
+                pages_lbl.setStyleSheet(secondary_text_style())
                 jrow.addWidget(pages_lbl)
 
                 color = _job_color(j.status)
@@ -261,12 +302,9 @@ class PrintersPage(QWidget):
 
         # ── Errors ───────────────────────────────────────────────────────────
         if data.errors:
-            frame, layout = _panel(f"⚠ Warnings ({len(data.errors)})")
+            frame, layout = _panel(f"⚠ Scan Warnings ({len(data.errors)})")
             for e in data.errors:
-                lbl = QLabel(e)
-                lbl.setStyleSheet("color: #d29922;")
-                lbl.setWordWrap(True)
-                layout.addWidget(lbl)
+                layout.addWidget(info_banner(e, level="warning"))
             self._results_layout.addWidget(frame)
 
         self._results_layout.addStretch(1)

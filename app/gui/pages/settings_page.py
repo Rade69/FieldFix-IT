@@ -6,6 +6,7 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QApplication,
     QCheckBox,
     QComboBox,
     QFileDialog,
@@ -23,16 +24,11 @@ from PySide6.QtWidgets import (
 )
 
 from app.core.settings import AppSettings, get_settings
+from app.gui.styles import get_stylesheet, normalize_theme, secondary_text_style
 
 
 def _section(title: str) -> tuple[QGroupBox, QVBoxLayout]:
     box = QGroupBox(title)
-    box.setStyleSheet(
-        "QGroupBox { font-weight: bold; font-size: 13px; color: #c9d1d9;"
-        " border: 1px solid #30363d; border-radius: 8px; margin-top: 10px;"
-        " padding-top: 8px; }"
-        "QGroupBox::title { subcontrol-origin: margin; left: 12px; padding: 0 6px; }"
-    )
     layout = QVBoxLayout(box)
     layout.setContentsMargins(16, 12, 16, 14)
     layout.setSpacing(10)
@@ -42,7 +38,7 @@ def _section(title: str) -> tuple[QGroupBox, QVBoxLayout]:
 def _label(text: str, muted: bool = False) -> QLabel:
     lbl = QLabel(text)
     if muted:
-        lbl.setStyleSheet("color: #6e7681; font-size: 11px;")
+        lbl.setStyleSheet(secondary_text_style(size=11))
     return lbl
 
 
@@ -87,11 +83,7 @@ class SettingsPage(QWidget):
         h_row.addWidget(self._saved_lbl)
 
         reset_btn = QPushButton("Reset to defaults")
-        reset_btn.setStyleSheet(
-            "QPushButton { background: transparent; color: #9aa4b2; border: 1px solid #30363d;"
-            " border-radius: 4px; padding: 4px 12px; }"
-            "QPushButton:hover { color: #f0f6fc; border-color: #58a6ff; }"
-        )
+        reset_btn.setObjectName("SecondaryButton")
         reset_btn.clicked.connect(self._reset_defaults)
         h_row.addWidget(reset_btn)
         outer.addWidget(header)
@@ -107,12 +99,36 @@ class SettingsPage(QWidget):
         layout.setSpacing(16)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
+        layout.addWidget(self._build_appearance())
         layout.addWidget(self._build_scanning())
         layout.addWidget(self._build_reports())
         layout.addWidget(self._build_safety())
 
         scroll.setWidget(content)
         outer.addWidget(scroll, stretch=1)
+
+    # ── Section: Appearance ──────────────────────────────────────────────────
+
+    def _build_appearance(self) -> QGroupBox:
+        box, layout = _section("Appearance")
+
+        theme_row = QHBoxLayout()
+        theme_row.addWidget(_label("Application theme:"), stretch=1)
+        self._theme_combo = QComboBox()
+        self._theme_combo.addItems(["Dark", "Light"])
+        theme_map = {"dark": 0, "light": 1}
+        self._theme_combo.setCurrentIndex(theme_map.get(normalize_theme(self._settings.theme), 0))
+        self._theme_combo.setFixedWidth(130)
+        self._theme_combo.currentIndexChanged.connect(self._on_theme_changed)
+        theme_row.addWidget(self._theme_combo)
+        layout.addLayout(theme_row)
+
+        layout.addWidget(_label(
+            "Theme changes apply immediately and are saved for the next launch.",
+            muted=True,
+        ))
+
+        return box
 
     # ── Section: Scanning ─────────────────────────────────────────────────────
 
@@ -135,7 +151,7 @@ class SettingsPage(QWidget):
 
         sep = QFrame()
         sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setStyleSheet("color: #21262d;")
+        sep.setObjectName("SeparatorLine")
         layout.addWidget(sep)
 
         # Timeout
@@ -145,7 +161,7 @@ class SettingsPage(QWidget):
         self._timeout_spin.setRange(10, 120)
         self._timeout_spin.setValue(self._settings.scan_timeout_sec)
         self._timeout_spin.setSuffix(" s")
-        self._timeout_spin.setFixedWidth(80)
+        self._timeout_spin.setFixedWidth(96)
         self._timeout_spin.valueChanged.connect(lambda v: self._set("scan_timeout_sec", v))
         timeout_row.addWidget(self._timeout_spin)
         layout.addLayout(timeout_row)
@@ -156,7 +172,7 @@ class SettingsPage(QWidget):
         self._topo_spin = QSpinBox()
         self._topo_spin.setRange(4, 32)
         self._topo_spin.setValue(self._settings.max_topology_devices)
-        self._topo_spin.setFixedWidth(80)
+        self._topo_spin.setFixedWidth(88)
         self._topo_spin.valueChanged.connect(lambda v: self._set("max_topology_devices", v))
         topo_row.addWidget(self._topo_spin)
         layout.addLayout(topo_row)
@@ -181,10 +197,6 @@ class SettingsPage(QWidget):
         dir_row = QHBoxLayout()
         self._dir_edit = QLineEdit(self._settings.reports_dir)
         self._dir_edit.setReadOnly(True)
-        self._dir_edit.setStyleSheet(
-            "QLineEdit { background: #0d1117; border: 1px solid #30363d;"
-            " border-radius: 4px; padding: 4px 8px; color: #c9d1d9; }"
-        )
         dir_row.addWidget(self._dir_edit, stretch=1)
         browse_btn = QPushButton("Browse…")
         browse_btn.setFixedWidth(100)
@@ -221,15 +233,12 @@ class SettingsPage(QWidget):
 
         # Scan mode info
         mode_frame = QFrame()
-        mode_frame.setStyleSheet(
-            "QFrame { background: #0d2217; border: 1px solid #1a4731;"
-            " border-radius: 6px; }"
-        )
+        mode_frame.setObjectName("SafetyFrame")
         mode_layout = QHBoxLayout(mode_frame)
         mode_layout.setContentsMargins(12, 8, 12, 8)
         mode_layout.addWidget(_label("🛡  Default mode:"))
         mode_val = QLabel("Scan Mode (Read Only)")
-        mode_val.setStyleSheet("color: #3fb950; font-weight: bold;")
+        mode_val.setStyleSheet("color: #16A34A; font-weight: bold;")
         mode_layout.addWidget(mode_val)
         mode_layout.addStretch(1)
         layout.addWidget(mode_frame)
@@ -240,7 +249,7 @@ class SettingsPage(QWidget):
 
         sep = QFrame()
         sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setStyleSheet("color: #21262d;")
+        sep.setObjectName("SeparatorLine")
         layout.addWidget(sep)
 
         # Confirm before apply — read-only
@@ -251,13 +260,9 @@ class SettingsPage(QWidget):
         lock = QLabel("🔒")
         confirm_layout.addWidget(lock)
         confirm_lbl = QLabel("Confirm before applying any fix")
-        confirm_lbl.setStyleSheet("color: #c9d1d9;")
         confirm_layout.addWidget(confirm_lbl, stretch=1)
         always_lbl = QLabel("Always ON")
-        always_lbl.setStyleSheet(
-            "color: #3fb950; font-weight: bold; background: #0d2217;"
-            " border: 1px solid #1a4731; border-radius: 4px; padding: 2px 8px;"
-        )
+        always_lbl.setObjectName("SuccessBadge")
         confirm_layout.addWidget(always_lbl)
         layout.addWidget(confirm_frame)
         layout.addWidget(_label(
@@ -293,6 +298,13 @@ class SettingsPage(QWidget):
         fmt = ["html", "markdown", "json"][idx]
         self._set("reports_format", fmt)
 
+    def _on_theme_changed(self, idx: int) -> None:
+        theme = ["dark", "light"][idx]
+        self._set("theme", theme)
+        app = QApplication.instance()
+        if app:
+            app.setStyleSheet(get_stylesheet(theme))
+
     def _reset_defaults(self) -> None:
         defaults = AppSettings()
         self._settings.__dict__.update(defaults.__dict__)
@@ -305,6 +317,7 @@ class SettingsPage(QWidget):
         self._timeout_spin.setValue(defaults.scan_timeout_sec)
         self._topo_spin.setValue(defaults.max_topology_devices)
         self._cb_autoscan.setChecked(defaults.auto_scan_on_startup)
+        self._theme_combo.setCurrentIndex(0)
         self._dir_edit.setText(defaults.reports_dir)
         self._fmt_combo.setCurrentIndex(0)
         self._cb_autoopen.setChecked(defaults.auto_open_report)

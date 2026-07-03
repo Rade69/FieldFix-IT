@@ -1,16 +1,18 @@
+from html import escape
+
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QMessageBox, QPushButton, QVBoxLayout
 
-# Dummy data only — replaced by Decision Engine output (Faza 10).
-_DUMMY_STEPS = [
-    ("Ping Host", "✓", "#3fb950"),
-    ("SMB Port", "✓", "#3fb950"),
-    ("Authentication", "✕", "#f85149"),
-    ("Access", "○", "#9aa4b2"),
-]
+from app.core.issue import Issue
+from app.core.risk_level import RiskLevel
+from app.gui.styles import TEXT_SECONDARY, secondary_text_style
 
-_DUMMY_PROBLEM = "Cannot access \\\\192.168.100.155?"
-_DUMMY_CONCLUSION = "Wrong credentials or insufficient permissions."
+_SEVERITY_COLOR = {
+    RiskLevel.CRITICAL: "#DC2626",
+    RiskLevel.HIGH: "#DC2626",
+    RiskLevel.MEDIUM: "#F59E0B",
+    RiskLevel.LOW: "#16A34A",
+}
 
 
 def _build_step_chain(steps: list) -> QHBoxLayout:
@@ -29,7 +31,7 @@ def _build_step_chain(steps: list) -> QHBoxLayout:
         step_col.addWidget(icon_label)
 
         name_label = QLabel(label)
-        name_label.setStyleSheet("font-size: 10px; color: #9aa4b2;")
+        name_label.setStyleSheet(secondary_text_style(size=10))
         name_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         step_col.addWidget(name_label)
 
@@ -37,7 +39,7 @@ def _build_step_chain(steps: list) -> QHBoxLayout:
 
         if i < len(steps) - 1:
             arrow = QLabel("→")
-            arrow.setStyleSheet("color: #9aa4b2; font-size: 14px;")
+            arrow.setStyleSheet(secondary_text_style(size=14))
             arrow.setAlignment(Qt.AlignmentFlag.AlignVCenter)
             row.addWidget(arrow)
 
@@ -45,11 +47,36 @@ def _build_step_chain(steps: list) -> QHBoxLayout:
     return row
 
 
+def _issue_steps(issue: Issue) -> list[tuple[str, str, str]]:
+    color = _SEVERITY_COLOR.get(issue.severity, TEXT_SECONDARY)
+    evidence_icon = "✓" if issue.evidence else "○"
+    cause_icon = "✓" if issue.likely_cause else "○"
+    action_icon = "✓" if issue.recommended_actions else "○"
+    review_icon = "!" if issue.severity >= RiskLevel.HIGH else "✓"
+    return [
+        ("Evidence", evidence_icon, "#16A34A" if issue.evidence else TEXT_SECONDARY),
+        ("Cause", cause_icon, "#16A34A" if issue.likely_cause else TEXT_SECONDARY),
+        ("Action", action_icon, "#16A34A" if issue.recommended_actions else TEXT_SECONDARY),
+        ("Risk", review_icon, color),
+    ]
+
+
+def _clear_layout(layout) -> None:
+    while layout.count():
+        item = layout.takeAt(0)
+        if widget := item.widget():
+            widget.deleteLater()
+        elif child := item.layout():
+            _clear_layout(child)
+
+
+# Context: agent_reports/2026-07-01_fix-status-summary-report-client-summary.md
 class DecisionAssistantWidget(QFrame):
-    """Decision Assistant panel. Dummy diagnostic chain — replaced by Decision Engine (Faza 10)."""
+    """Decision Assistant panel populated from Decision Engine issues."""
 
     def __init__(self) -> None:
         super().__init__()
+        self._current_issue: Issue | None = None
         self.setObjectName("PanelCard")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 12, 16, 12)
@@ -59,22 +86,74 @@ class DecisionAssistantWidget(QFrame):
         title.setStyleSheet("font-weight: bold;")
         layout.addWidget(title)
 
-        problem_label = QLabel(_DUMMY_PROBLEM)
-        problem_label.setStyleSheet("color: #9aa4b2; font-size: 11px;")
-        layout.addWidget(problem_label)
+        self._problem_label = QLabel("Run a scan to get decision guidance.")
+        self._problem_label.setStyleSheet(secondary_text_style(size=11))
+        self._problem_label.setWordWrap(True)
+        layout.addWidget(self._problem_label)
 
-        layout.addLayout(_build_step_chain(_DUMMY_STEPS))
+        self._steps_layout = QHBoxLayout()
+        layout.addLayout(self._steps_layout)
 
         cause_label = QLabel("Most likely cause:")
-        cause_label.setStyleSheet("color: #9aa4b2; font-size: 11px;")
+        cause_label.setStyleSheet(secondary_text_style(size=11))
         layout.addWidget(cause_label)
 
-        conclusion_label = QLabel(_DUMMY_CONCLUSION)
-        conclusion_label.setStyleSheet("color: #e3b341; font-weight: 600;")
-        conclusion_label.setWordWrap(True)
-        layout.addWidget(conclusion_label)
+        self._conclusion_label = QLabel("No scan result loaded yet.")
+        self._conclusion_label.setStyleSheet(secondary_text_style(weight=600))
+        self._conclusion_label.setWordWrap(True)
+        layout.addWidget(self._conclusion_label)
 
         layout.addStretch(1)
 
-        open_details_button = QPushButton("Open Details")
-        layout.addWidget(open_details_button)
+        self._open_details_button = QPushButton("Open Details")
+        self._open_details_button.clicked.connect(self._open_details)
+        self._open_details_button.setEnabled(False)
+        layout.addWidget(self._open_details_button)
+
+    def update_data(self, issues: tuple[Issue, ...]) -> None:
+        if not issues:
+            self._current_issue = None
+            self._problem_label.setText("No issues detected.")
+            self._conclusion_label.setText("Decision Engine did not find a problem to explain.")
+            self._conclusion_label.setStyleSheet("color: #16A34A; font-weight: 600;")
+            self._open_details_button.setEnabled(False)
+            _clear_layout(self._steps_layout)
+            return
+
+        issue = issues[0]
+        self._current_issue = issue
+        self._problem_label.setText(issue.title)
+        conclusion = issue.likely_cause or (
+            issue.recommended_actions[0] if issue.recommended_actions else "Review diagnostic evidence."
+        )
+        color = _SEVERITY_COLOR.get(issue.severity, TEXT_SECONDARY)
+        self._conclusion_label.setText(conclusion)
+        self._conclusion_label.setStyleSheet(f"color: {color}; font-weight: 600;")
+        self._open_details_button.setEnabled(True)
+
+        _clear_layout(self._steps_layout)
+        self._steps_layout.addLayout(_build_step_chain(_issue_steps(issue)))
+
+    def _open_details(self) -> None:
+        issue = self._current_issue
+        if issue is None:
+            return
+
+        evidence = "".join(f"<li>{escape(item)}</li>" for item in issue.evidence) or "<li>No evidence recorded.</li>"
+        actions = "".join(
+            f"<li>{escape(item)}</li>" for item in issue.recommended_actions
+        ) or "<li>Review diagnostic evidence.</li>"
+        QMessageBox.information(
+            self,
+            "Decision details",
+            "<b>Problem</b><br>"
+            f"{escape(issue.title)}<br><br>"
+            "<b>Severity</b><br>"
+            f"{escape(issue.severity.name)} ({escape(issue.confidence)} confidence)<br><br>"
+            "<b>Evidence</b>"
+            f"<ul>{evidence}</ul>"
+            "<b>Most likely cause</b><br>"
+            f"{escape(issue.likely_cause or 'Unknown')}<br><br>"
+            "<b>Suggested next steps</b>"
+            f"<ul>{actions}</ul>",
+        )

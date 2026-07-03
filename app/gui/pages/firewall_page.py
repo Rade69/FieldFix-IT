@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.core.powershell_runner import PowerShellRunner
+from app.gui.styles import TEXT_SECONDARY, secondary_text_style
 from app.modules.firewall.models import FirewallData, FirewallRule
 from app.modules.firewall.scanner import FirewallScanner
 
@@ -20,7 +21,7 @@ _ACTION_COLOR = {
 
 _ENABLED_COLOR = {
     True: "#3fb950",
-    False: "#9aa4b2",
+    False: TEXT_SECONDARY,
 }
 
 _DEFAULT_INBOUND_COLOR = {
@@ -38,14 +39,14 @@ def _bool_badge(value: bool | None) -> QLabel:
         color = _ENABLED_COLOR[False]
     else:
         text = "- Unknown"
-        color = "#9aa4b2"
+        color = TEXT_SECONDARY
     label = QLabel(text)
     label.setStyleSheet(f"color: {color}; font-weight: bold;")
     return label
 
 
 def _action_badge(action: str) -> QLabel:
-    color = _ACTION_COLOR.get(action, "#9aa4b2")
+    color = _ACTION_COLOR.get(action, TEXT_SECONDARY)
     label = QLabel(action or "-")
     label.setStyleSheet(f"color: {color}; font-weight: bold;")
     return label
@@ -75,7 +76,7 @@ class FirewallPage(QWidget):
         h_layout.addStretch(1)
 
         self._status_label = QLabel("Not scanned")
-        self._status_label.setStyleSheet("color: #9aa4b2;")
+        self._status_label.setStyleSheet(secondary_text_style())
         h_layout.addWidget(self._status_label)
         h_layout.addSpacing(12)
 
@@ -96,7 +97,7 @@ class FirewallPage(QWidget):
         self._results_layout.setContentsMargins(0, 8, 0, 8)
 
         placeholder = QLabel("  Click '▶ Run Scan' to check Windows Firewall state.")
-        placeholder.setStyleSheet("color: #9aa4b2; padding: 24px;")
+        placeholder.setStyleSheet(secondary_text_style() + " padding: 24px;")
         self._results_layout.addWidget(placeholder)
 
         scroll.setWidget(self._results_widget)
@@ -160,7 +161,7 @@ class FirewallPage(QWidget):
             ("Default Outbound", 160),
         ]:
             label = QLabel(text)
-            label.setStyleSheet("color: #9aa4b2; font-size: 11px;")
+            label.setStyleSheet(secondary_text_style(size=11))
             label.setFixedWidth(width)
             hdr.addWidget(label)
         hdr.addStretch(1)
@@ -184,7 +185,7 @@ class FirewallPage(QWidget):
             row.addWidget(enabled_spacer)
 
             inbound = profile.default_inbound if profile else ""
-            inbound_color = _DEFAULT_INBOUND_COLOR.get(inbound, "#9aa4b2")
+            inbound_color = _DEFAULT_INBOUND_COLOR.get(inbound, TEXT_SECONDARY)
             inbound_label = QLabel(inbound or "-")
             inbound_label.setFixedWidth(160)
             inbound_label.setStyleSheet(f"color: {inbound_color}; font-weight: bold;")
@@ -194,7 +195,7 @@ class FirewallPage(QWidget):
             outbound_color = (
                 "#d29922" if outbound == "Block"
                 else "#3fb950" if outbound == "Allow"
-                else "#9aa4b2"
+                else TEXT_SECONDARY
             )
             outbound_label = QLabel(outbound or "-")
             outbound_label.setFixedWidth(160)
@@ -226,7 +227,7 @@ class FirewallPage(QWidget):
             ("Profile", 140),
         ]:
             label = QLabel(text)
-            label.setStyleSheet("color: #9aa4b2; font-size: 11px;")
+            label.setStyleSheet(secondary_text_style(size=11))
             label.setFixedWidth(width)
             hdr.addWidget(label)
         hdr.addStretch(1)
@@ -235,7 +236,7 @@ class FirewallPage(QWidget):
 
         if not rules:
             empty = QLabel("No rules returned by PowerShell.")
-            empty.setStyleSheet("color: #9aa4b2; padding: 8px 0;")
+            empty.setStyleSheet(secondary_text_style() + " padding: 8px 0;")
             layout.addWidget(empty)
             return frame
 
@@ -251,7 +252,7 @@ class FirewallPage(QWidget):
 
             direction_label = QLabel(rule.direction or "-")
             direction_label.setFixedWidth(100)
-            direction_label.setStyleSheet("color: #9aa4b2;")
+            direction_label.setStyleSheet(secondary_text_style())
             row.addWidget(direction_label)
 
             row.addWidget(_action_badge(rule.action))
@@ -266,7 +267,7 @@ class FirewallPage(QWidget):
 
             profile_label = QLabel(rule.profile or "-")
             profile_label.setFixedWidth(140)
-            profile_label.setStyleSheet("color: #9aa4b2;")
+            profile_label.setStyleSheet(secondary_text_style())
             row.addWidget(profile_label)
 
             row.addStretch(1)
@@ -295,5 +296,5 @@ class FirewallPage(QWidget):
     def _separator(self) -> QFrame:
         sep = QFrame()
         sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setStyleSheet("color: #232a36;")
+        sep.setObjectName("SeparatorLine")
         return sep

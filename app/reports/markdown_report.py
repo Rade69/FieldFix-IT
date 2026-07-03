@@ -21,6 +21,7 @@ def _bool_str(value: bool | None, true_good: bool = True) -> str:
     return _NO if true_good else _YES
 
 
+# Context: agent_reports/2026-06-30_report-generator.md
 def write_markdown(report: ScanReport, issues: tuple[Issue, ...] = ()) -> str:
     lines: list[str] = []
 
@@ -35,6 +36,9 @@ def write_markdown(report: ScanReport, issues: tuple[Issue, ...] = ()) -> str:
         "---",
         "",
     ]
+
+    lines += _client_summary_section(report, issues)
+    lines += ["## Technical Details", ""]
 
     if issues:
         lines += _issues_section(issues)
@@ -52,6 +56,43 @@ def write_markdown(report: ScanReport, issues: tuple[Issue, ...] = ()) -> str:
     ]
 
     return "\n".join(lines)
+
+
+def _suggested_next_steps(issues: tuple[Issue, ...]) -> list[str]:
+    if not issues:
+        return ["No immediate action needed."]
+    steps: list[str] = []
+    for issue in issues[:3]:
+        if issue.recommended_actions:
+            steps.append(issue.recommended_actions[0])
+        elif issue.likely_cause:
+            steps.append(f"Review: {issue.likely_cause}")
+        else:
+            steps.append(f"Review: {issue.title}")
+    return steps
+
+
+# Context: agent_reports/2026-07-01_fix-status-summary-report-client-summary.md
+def _client_summary_section(report: ScanReport, issues: tuple[Issue, ...]) -> list[str]:
+    lines = ["## Client Summary", ""]
+    lines += [
+        f"- **Issues found:** {len(issues)}",
+        "- **Suggested next steps:**",
+    ]
+    for step in _suggested_next_steps(issues):
+        lines.append(f"  - {step}")
+    lines.append("")
+
+    printers = report.printers.printers if report.printers else ()
+    if printers:
+        lines += ["### Printers", "", "| Name | Status |", "|------|--------|"]
+        for printer in printers:
+            lines.append(f"| {printer.name} | {printer.status or _UNKNOWN} |")
+        lines.append("")
+    else:
+        lines += ["### Printers", "", "_No printers found or printer scan was not included._", ""]
+
+    return lines + ["---", ""]
 
 
 # ── Issues ────────────────────────────────────────────────────────────────────

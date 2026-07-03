@@ -12,6 +12,7 @@ _PAGE_META = {
     "Services": "Services, startup",
     "Printers": "Printers, ports",
     "Topology": "Network devices",
+    "Scenarios": "Guided diagnostics",
     "Fix Center": "Controlled fixes",
     "Reports": "Export and history",
     "Settings": "General settings",

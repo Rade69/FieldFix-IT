@@ -52,6 +52,7 @@ def restart_as_admin() -> None:
         os._exit(0)
 
 
+# Context: agent_reports/2026-06-30_powershell-runner.md
 class PowerShellRunner:
     """Executes read-only PowerShell commands and returns CommandResult objects.
 
@@ -80,6 +81,7 @@ class PowerShellRunner:
                 encoding="utf-8",
                 errors="replace",
                 timeout=timeout,
+                creationflags=subprocess.CREATE_NO_WINDOW,
             )
             raw_stdout = proc.stdout
             stderr = proc.stderr

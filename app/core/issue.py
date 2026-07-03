@@ -15,3 +15,4 @@ class Issue:
     confidence: str = "Medium"  # "High" | "Medium" | "Low" — see Faza 10 Decision Engine
     recommended_actions: list[str] = field(default_factory=list)
     related_module: str = ""
+    fix_id: str | None = None  # maps to FixAction.id in fix_center_page

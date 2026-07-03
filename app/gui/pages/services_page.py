@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.core.powershell_runner import PowerShellRunner
+from app.gui.styles import TEXT_SECONDARY, secondary_text_style
 from app.modules.services.models import ServicesData
 from app.modules.services.scanner import ServicesScanner
 
@@ -19,18 +20,18 @@ _STATUS_COLOR = {
     "StartPending":  "#d29922",
     "StopPending":   "#d29922",
     "Paused":        "#d29922",
-    "NotFound":      "#9aa4b2",
+    "NotFound":      TEXT_SECONDARY,
 }
 
 _START_TYPE_COLOR = {
     "Automatic":     "#3fb950",
-    "Manual":        "#9aa4b2",
+    "Manual":        TEXT_SECONDARY,
     "Disabled":      "#f85149",
 }
 
 
 def _status_label(status: str) -> QLabel:
-    color = _STATUS_COLOR.get(status, "#9aa4b2")
+    color = _STATUS_COLOR.get(status, TEXT_SECONDARY)
     icon = "✓" if status == "Running" else ("✕" if status == "Stopped" else "●")
     label = QLabel(f"{icon} {status}")
     label.setStyleSheet(f"color: {color}; font-weight: bold;")
@@ -62,7 +63,7 @@ class ServicesPage(QWidget):
         h_layout.addStretch(1)
 
         self._status_label = QLabel("Not scanned")
-        self._status_label.setStyleSheet("color: #9aa4b2;")
+        self._status_label.setStyleSheet(secondary_text_style())
         h_layout.addWidget(self._status_label)
         h_layout.addSpacing(12)
 
@@ -84,11 +85,18 @@ class ServicesPage(QWidget):
         self._results_layout.setContentsMargins(0, 8, 0, 8)
 
         placeholder = QLabel("  Click '▶ Run Scan' to check Windows service states.")
-        placeholder.setStyleSheet("color: #9aa4b2; padding: 24px;")
+        placeholder.setStyleSheet(secondary_text_style() + " padding: 24px;")
         self._results_layout.addWidget(placeholder)
 
         scroll.setWidget(self._results_widget)
         outer.addWidget(scroll, stretch=1)
+
+    def load_data(self, data: ServicesData, scanned_at: str = "") -> None:
+        """Populate page with data from a shared Dashboard scan (no re-scan)."""
+        self._display_results(data)
+        ts = scanned_at[11:19] if len(scanned_at) >= 19 else ""
+        self._status_label.setText(f"From Dashboard scan{f'  {ts}' if ts else ''}")
+        self._status_label.setStyleSheet(secondary_text_style())
 
     def _run_scan(self) -> None:
         self._scan_btn.setEnabled(False)
@@ -126,8 +134,8 @@ class ServicesPage(QWidget):
 
         for text, color in [
             (f"✓ Running: {running}", "#3fb950"),
-            (f"✕ Stopped: {stopped}", "#f85149" if stopped > 0 else "#9aa4b2"),
-            (f"Total monitored: {total}", "#9aa4b2"),
+            (f"✕ Stopped: {stopped}", "#f85149" if stopped > 0 else TEXT_SECONDARY),
+            (f"Total monitored: {total}", TEXT_SECONDARY),
         ]:
             lbl = QLabel(text)
             lbl.setStyleSheet(f"color: {color}; font-weight: bold; margin-right: 24px;")
@@ -146,7 +154,7 @@ class ServicesPage(QWidget):
         hdr = QHBoxLayout()
         for txt, w in [("Service", 180), ("Display Name", 220), ("Status", 120), ("Startup", 100), ("Potrebno za", 0)]:
             lbl = QLabel(txt)
-            lbl.setStyleSheet("color: #9aa4b2; font-size: 11px;")
+            lbl.setStyleSheet(secondary_text_style(size=11))
             if w:
                 lbl.setFixedWidth(w)
             hdr.addWidget(lbl)
@@ -156,7 +164,7 @@ class ServicesPage(QWidget):
         # Separator
         sep = QFrame()
         sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setStyleSheet("color: #232a36;")
+        sep.setObjectName("SeparatorLine")
         t_layout.addWidget(sep)
 
         # Service rows
@@ -171,7 +179,7 @@ class ServicesPage(QWidget):
 
             display_lbl = QLabel(svc.display_name or "—")
             display_lbl.setFixedWidth(220)
-            display_lbl.setStyleSheet("color: #9aa4b2;")
+            display_lbl.setStyleSheet(secondary_text_style())
             row.addWidget(display_lbl)
 
             row.addWidget(_status_label(svc.status))
@@ -180,14 +188,14 @@ class ServicesPage(QWidget):
             spacer.setFixedWidth(120 - 90)
             row.addWidget(spacer)
 
-            st_color = _START_TYPE_COLOR.get(svc.start_type, "#9aa4b2")
+            st_color = _START_TYPE_COLOR.get(svc.start_type, TEXT_SECONDARY)
             st_lbl = QLabel(svc.start_type or "—")
             st_lbl.setFixedWidth(100)
             st_lbl.setStyleSheet(f"color: {st_color};")
             row.addWidget(st_lbl)
 
             req_lbl = QLabel(svc.required_for)
-            req_lbl.setStyleSheet("color: #9aa4b2; font-size: 11px;")
+            req_lbl.setStyleSheet(secondary_text_style(size=11))
             req_lbl.setWordWrap(True)
             row.addWidget(req_lbl, stretch=1)
 

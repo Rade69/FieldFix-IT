@@ -38,6 +38,9 @@ class AppSettings:
     # understands the confirmation dialog is intentional, not a bug.
     confirm_before_apply: bool = True
 
+    # ── Appearance ────────────────────────────────────────────────────────────
+    theme: str = "dark"  # dark | light
+
     def save(self) -> None:
         p = _settings_path()
         p.parent.mkdir(parents=True, exist_ok=True)

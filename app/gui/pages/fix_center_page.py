@@ -25,9 +25,11 @@ from PySide6.QtWidgets import (
 
 from app.core.powershell_runner import PowerShellRunner, is_admin, restart_as_admin
 from app.core.risk_level import RiskLevel
+from app.gui.styles import secondary_text_style
 from app.gui.widgets.risk_badge import RiskBadge
 
 
+# Context: agent_reports/2026-06-30_fix-center-v1.md
 @dataclass(frozen=True)
 class FixAction:
     id: str
@@ -37,6 +39,7 @@ class FixAction:
     risk_level: RiskLevel
     requires_admin: bool
     ps_command: str
+    check_cmd: str = ""
 
 
 _AVAILABLE_FIXES: tuple[FixAction, ...] = (
@@ -55,6 +58,7 @@ _AVAILABLE_FIXES: tuple[FixAction, ...] = (
             "Where-Object {$_.NetworkCategory -eq 'Public'} | "
             "Set-NetConnectionProfile -NetworkCategory Private"
         ),
+        check_cmd="(Get-NetConnectionProfile | Where {$_.NetworkCategory -eq 'Private'}).Count -gt 0",
     ),
     FixAction(
         id="ENABLE_NETWORK_DISCOVERY",
@@ -67,6 +71,7 @@ _AVAILABLE_FIXES: tuple[FixAction, ...] = (
         risk_level=RiskLevel.LOW,
         requires_admin=True,
         ps_command='netsh advfirewall firewall set rule group="network discovery" new enable=Yes',
+        check_cmd='(netsh advfirewall firewall show rule name="Network Discovery" | Select-String "Enabled:\\s+Yes").Count -gt 0',
     ),
     FixAction(
         id="ENABLE_FILE_PRINTER_SHARING",
@@ -79,6 +84,7 @@ _AVAILABLE_FIXES: tuple[FixAction, ...] = (
         risk_level=RiskLevel.LOW,
         requires_admin=True,
         ps_command='netsh advfirewall firewall set rule group="file and printer sharing" new enable=Yes',
+        check_cmd='(netsh advfirewall firewall show rule name="File and Printer Sharing" | Select-String "Enabled:\\s+Yes").Count -gt 0',
     ),
     FixAction(
         id="START_PRINT_SPOOLER",
@@ -91,6 +97,7 @@ _AVAILABLE_FIXES: tuple[FixAction, ...] = (
         risk_level=RiskLevel.LOW,
         requires_admin=True,
         ps_command="Start-Service Spooler -ErrorAction Stop; Set-Service Spooler -StartupType Automatic",
+        check_cmd="(Get-Service Spooler).Status -eq 'Running'",
     ),
     FixAction(
         id="START_FDRESPUB",
@@ -103,6 +110,7 @@ _AVAILABLE_FIXES: tuple[FixAction, ...] = (
         risk_level=RiskLevel.LOW,
         requires_admin=True,
         ps_command="Start-Service FDResPub -ErrorAction Stop",
+        check_cmd="(Get-Service FDResPub).Status -eq 'Running'",
     ),
 )
 
@@ -133,14 +141,13 @@ class _FixActionCard(QFrame):
         # Description
         desc = QLabel(action.description)
         desc.setWordWrap(True)
-        desc.setStyleSheet("color: #c9d1d9;")
         outer.addWidget(desc)
 
         # Metadata
         meta_row = QHBoxLayout()
         meta_row.addWidget(_muted("What changes:"))
         changes_lbl = QLabel(action.what_it_changes)
-        changes_lbl.setStyleSheet("color: #9aa4b2; font-size: 11px;")
+        changes_lbl.setStyleSheet(secondary_text_style(size=11))
         meta_row.addWidget(changes_lbl)
         meta_row.addStretch(1)
         if action.requires_admin:
@@ -152,7 +159,7 @@ class _FixActionCard(QFrame):
         # Separator
         sep = QFrame()
         sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setStyleSheet("color: #30363d;")
+        sep.setObjectName("SeparatorLine")
         outer.addWidget(sep)
 
         # Action row
@@ -176,20 +183,34 @@ class _FixActionCard(QFrame):
             self._apply_btn.setStyleSheet(
                 "QPushButton { background: #238636; color: white; border-radius: 4px; padding: 4px 10px; }"
                 "QPushButton:hover { background: #2ea043; }"
-                "QPushButton:disabled { background: #3d4249; color: #6e7681; }"
+                "QPushButton:disabled { background: #E5E7EB; color: #4B5563; }"
             )
         else:
             self._apply_btn.setEnabled(False)
             self._apply_btn.setToolTip("Restart app as Administrator to apply fixes.")
             self._apply_btn.setStyleSheet(
-                "QPushButton { background: #3d4249; color: #6e7681; border-radius: 4px; padding: 4px 10px; }"
+                "QPushButton { background: #E5E7EB; color: #4B5563; border-radius: 4px; padding: 4px 10px; }"
             )
         action_row.addWidget(self._apply_btn)
         outer.addLayout(action_row)
+        self._apply_current_status()
+
+    # Context: agent_reports/2026-07-01_fix-status-summary-report-client-summary.md
+    def _apply_current_status(self) -> None:
+        if not self._action.check_cmd:
+            return
+        result = self._runner.run(self._action.check_cmd, timeout=10)
+        is_active = result.succeeded and result.stdout.strip().lower() == "true"
+        if not is_active:
+            return
+        self._result_label.setText("✓ Already active")
+        self._result_label.setStyleSheet("font-size: 11px; color: #3fb950; font-weight: bold;")
+        self._result_label.show()
+        self._apply_btn.hide()
 
     def _on_skip(self) -> None:
         self._result_label.setText("⊘ Skipped")
-        self._result_label.setStyleSheet("font-size: 11px; color: #9aa4b2;")
+        self._result_label.setStyleSheet(secondary_text_style(size=11))
         self._result_label.show()
         self._apply_btn.setEnabled(False)
         self._skip_btn.setEnabled(False)
@@ -236,7 +257,7 @@ class _FixActionCard(QFrame):
 
 def _muted(text: str) -> QLabel:
     lbl = QLabel(text)
-    lbl.setStyleSheet("color: #8b949e; font-size: 11px;")
+    lbl.setStyleSheet(secondary_text_style(size=11))
     return lbl
 
 
@@ -247,7 +268,20 @@ class FixCenterPage(QWidget):
         super().__init__()
         self._runner = PowerShellRunner()
         self._is_admin = is_admin()
+        self._fix_cards: dict[str, _FixActionCard] = {}
+        self._scroll: QScrollArea | None = None
         self._setup_ui()
+
+    def scroll_to_fix(self, fix_id: str) -> None:
+        """Navigate to and briefly highlight the fix card matching fix_id."""
+        card = self._fix_cards.get(fix_id)
+        if not card or not self._scroll:
+            return
+        self._scroll.ensureWidgetVisible(card)
+        orig = card.styleSheet()
+        card.setStyleSheet(orig + " border: 1px solid #58a6ff;")
+        from PySide6.QtCore import QTimer
+        QTimer.singleShot(1800, lambda: card.setStyleSheet(orig))
 
     def _setup_ui(self) -> None:
         outer = QVBoxLayout(self)
@@ -313,9 +347,9 @@ class FixCenterPage(QWidget):
             outer.addWidget(banner)
 
         # ── Scrollable action list ──────────────────────────────────────────
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self._scroll = QScrollArea()
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setFrameShape(QFrame.Shape.NoFrame)
 
         content = QWidget()
         content_layout = QVBoxLayout(content)
@@ -323,10 +357,10 @@ class FixCenterPage(QWidget):
         content_layout.setSpacing(8)
 
         for action in _AVAILABLE_FIXES:
-            content_layout.addWidget(
-                _FixActionCard(action, self._runner, self._is_admin)
-            )
+            card = _FixActionCard(action, self._runner, self._is_admin)
+            self._fix_cards[action.id] = card
+            content_layout.addWidget(card)
 
         content_layout.addStretch(1)
-        scroll.setWidget(content)
-        outer.addWidget(scroll, stretch=1)
+        self._scroll.setWidget(content)
+        outer.addWidget(self._scroll, stretch=1)

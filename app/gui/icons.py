@@ -51,6 +51,7 @@ PHOSPHOR_UI_ICONS: dict[str, Path] = {
     "Services":      _UI / "services.svg",
     "Printers":      _UI / "printers.svg",
     "Topology":      _UI / "topology.svg",
+    "Scenarios":     _UI / "scenarios.svg",
     "Fix Center":    _UI / "fix.svg",
     "Reports":       _UI / "reports.svg",
     "Settings":      _UI / "settings.svg",

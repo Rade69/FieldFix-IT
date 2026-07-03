@@ -10,6 +10,8 @@ from PySide6.QtWidgets import (
 )
 
 from app.core.powershell_runner import PowerShellRunner
+from app.gui.styles import secondary_text_style
+from app.gui.widgets.empty_state import info_banner
 from app.modules.network.models import NetworkData
 from app.modules.network.scanner import NetworkScanner, _format_speed
 
@@ -17,7 +19,7 @@ from app.modules.network.scanner import NetworkScanner, _format_speed
 def _kv_row(key: str, value: str, value_color: str = "") -> QHBoxLayout:
     row = QHBoxLayout()
     key_label = QLabel(key)
-    key_label.setStyleSheet("color: #9aa4b2; min-width: 200px;")
+    key_label.setStyleSheet(secondary_text_style() + " min-width: 200px;")
     key_label.setAlignment(Qt.AlignmentFlag.AlignTop)
     row.addWidget(key_label)
     val_label = QLabel(value)
@@ -64,7 +66,7 @@ class NetworkPage(QWidget):
         header_layout.addStretch(1)
 
         self._status_label = QLabel("Not scanned")
-        self._status_label.setStyleSheet("color: #9aa4b2;")
+        self._status_label.setStyleSheet(secondary_text_style())
         header_layout.addWidget(self._status_label)
         header_layout.addSpacing(12)
 
@@ -86,11 +88,18 @@ class NetworkPage(QWidget):
         self._results_layout.setContentsMargins(0, 8, 0, 8)
 
         placeholder = QLabel("  Click '▶ Run Scan' to collect network information.")
-        placeholder.setStyleSheet("color: #9aa4b2; padding: 24px;")
+        placeholder.setStyleSheet(secondary_text_style() + " padding: 24px;")
         self._results_layout.addWidget(placeholder)
 
         scroll.setWidget(self._results_widget)
         outer.addWidget(scroll, stretch=1)
+
+    def load_data(self, data: NetworkData, scanned_at: str = "") -> None:
+        """Populate page with data from a shared Dashboard scan (no re-scan)."""
+        self._display_results(data)
+        ts = scanned_at[11:19] if len(scanned_at) >= 19 else ""
+        self._status_label.setText(f"From Dashboard scan{f'  {ts}' if ts else ''}")
+        self._status_label.setStyleSheet(secondary_text_style())
 
     def _run_scan(self) -> None:
         self._scan_btn.setEnabled(False)
@@ -131,6 +140,14 @@ class NetworkPage(QWidget):
                 speed_str = _format_speed(a.link_speed_bps) or "—"
                 layout.addLayout(_kv_row(a.name, f"{a.description}  |  {speed_str}  |  {a.mac_address or '—'}"))
             self._results_layout.addWidget(frame)
+        else:
+            frame, layout = _panel("🔌 Active Adapters")
+            layout.addWidget(info_banner(
+                "No active network adapters found.",
+                hint="Check if the network adapter is enabled in Device Manager.",
+                level="warning",
+            ))
+            self._results_layout.addWidget(frame)
 
         # IP / Gateway / DNS ─────────────────────────────────────────────────
         net_rows: list[tuple[str, str, str]] = []
@@ -145,6 +162,14 @@ class NetworkPage(QWidget):
             for key, val, color in net_rows:
                 layout.addLayout(_kv_row(key, val, color))
             self._results_layout.addWidget(frame)
+        elif data.adapters:
+            frame, layout = _panel("📡 Addressing")
+            layout.addWidget(info_banner(
+                "No IP address assigned.",
+                hint="Adapter is connected but has no IP. Check DHCP server or set a static IP.",
+                level="warning",
+            ))
+            self._results_layout.addWidget(frame)
 
         # Gateway ping ────────────────────────────────────────────────────────
         if data.gateway_reachable is not None:
@@ -155,6 +180,20 @@ class NetworkPage(QWidget):
                 gw_ip,
                 "✓ Reachable" if ok else "✕ Unreachable",
                 "#3fb950" if ok else "#f85149",
+            ))
+            if not ok:
+                layout.addWidget(info_banner(
+                    "Gateway unreachable — LAN/internet access is unavailable.",
+                    hint="Check cable, router, and switch. Run Fix Center → Enable Network Discovery.",
+                    level="error",
+                ))
+            self._results_layout.addWidget(frame)
+        elif not data.gateways:
+            frame, layout = _panel("📶 Gateway Reachability")
+            layout.addWidget(info_banner(
+                "No default gateway configured.",
+                hint="PC cannot reach other LAN devices or the internet. Check network settings.",
+                level="warning",
             ))
             self._results_layout.addWidget(frame)
 
@@ -175,8 +214,8 @@ class NetworkPage(QWidget):
         # Errors ──────────────────────────────────────────────────────────────
         if data.errors:
             frame, layout = _panel(f"⚠ Scan Warnings ({len(data.errors)})")
-            for i, e in enumerate(data.errors, 1):
-                layout.addLayout(_kv_row(f"#{i}", e, "#d29922"))
+            for e in data.errors:
+                layout.addWidget(info_banner(e, level="warning"))
             self._results_layout.addWidget(frame)
 
         self._results_layout.addStretch(1)

@@ -6,6 +6,7 @@ import sys
 
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout
 
+from app.gui.styles import TEXT_SECONDARY, secondary_text_style
 from app.modules.network.models import NetworkData
 
 
@@ -29,9 +30,9 @@ def _os_string() -> str:
 
 
 _CATEGORY_COLOR = {
-    "Private": "#3fb950",
-    "DomainAuthenticated": "#58a6ff",
-    "Public": "#d29922",
+    "Private": "#16A34A",
+    "DomainAuthenticated": "#0EA5E9",
+    "Public": "#F59E0B",
 }
 
 
@@ -46,14 +47,14 @@ def _get_rows(network: NetworkData | None) -> list[tuple[str, str, str, str]]:
 
     ipv4 = next((ip for ip in network.ip_addresses if _is_ipv4(ip.ip_address)), None)
     if ipv4:
-        rows.append(("📡", "IPv4 Address", ipv4.ip_address, "#58a6ff"))
+        rows.append(("📡", "IPv4 Address", ipv4.ip_address, "#2563EB"))
         if ipv4.prefix_length:
             rows.append(("🌐", "Subnet Mask", _prefix_to_mask(ipv4.prefix_length), ""))
 
     if network.gateways:
         gw = network.gateways[0]
         suffix = " ✓" if network.gateway_reachable else (" ✕" if network.gateway_reachable is False else "")
-        gw_color = "#3fb950" if network.gateway_reachable else ("#f85149" if network.gateway_reachable is False else "")
+        gw_color = "#16A34A" if network.gateway_reachable else ("#DC2626" if network.gateway_reachable is False else "")
         rows.append(("🔀", "Default Gateway", gw.next_hop + suffix, gw_color))
 
     if network.dns:
@@ -66,7 +67,7 @@ def _get_rows(network: NetworkData | None) -> list[tuple[str, str, str, str]]:
 
     if network.profiles:
         cat = network.profiles[0].category
-        rows.append(("📶", "Network Profile", cat, _CATEGORY_COLOR.get(cat, "#9aa4b2")))
+        rows.append(("📶", "Network Profile", cat, _CATEGORY_COLOR.get(cat, TEXT_SECONDARY)))
 
     if network.adapters:
         a = network.adapters[0]
@@ -81,7 +82,7 @@ def _build_row(icon: str, key: str, value: str, value_color: str = "") -> QHBoxL
     row = QHBoxLayout()
     icon_label = QLabel(icon)
     key_label = QLabel(key)
-    key_label.setStyleSheet("color: #9aa4b2;")
+    key_label.setStyleSheet(secondary_text_style())
     value_label = QLabel(value)
     style = "font-weight: bold;"
     if value_color:
@@ -118,7 +119,7 @@ class SystemInfoWidget(QFrame):
         header_row.addWidget(title)
         header_row.addStretch(1)
         refresh_label = QLabel("⟳ Refresh")
-        refresh_label.setStyleSheet("color: #58a6ff;")
+        refresh_label.setStyleSheet("color: #2563EB;")
         header_row.addWidget(refresh_label)
         layout.addLayout(header_row)
 

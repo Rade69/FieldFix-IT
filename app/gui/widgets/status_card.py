@@ -3,19 +3,20 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout
 
 from app.gui.icons import STATUS_CARD_ICONS
+from app.gui.styles import TEXT_SECONDARY, secondary_text_style
 
 _COLORS = {
-    "ok":       "#00d26a",
-    "warning":  "#f5b301",
-    "critical": "#ff4d4f",
-    "neutral":  "#9aa4b2",
+    "ok":       "#16A34A",
+    "warning":  "#F59E0B",
+    "critical": "#DC2626",
+    "neutral":  TEXT_SECONDARY,
 }
 
 _DETAIL_ICON = {
-    "ok":       ("✓", "#00d26a"),
-    "warning":  ("⚠", "#f5b301"),
-    "critical": ("✕", "#ff4d4f"),
-    "neutral":  ("—", "#9aa4b2"),
+    "ok":       ("✓", "#16A34A"),
+    "warning":  ("⚠", "#F59E0B"),
+    "critical": ("✕", "#DC2626"),
+    "neutral":  ("—", TEXT_SECONDARY),
 }
 
 _ICON_BG = {
@@ -67,7 +68,7 @@ class StatusCard(QFrame):
         text_col.setContentsMargins(0, 0, 0, 0)
 
         title_lbl = QLabel(title)
-        title_lbl.setStyleSheet("color: #9aa4b2; font-size: 11px; font-weight: 600;")
+        title_lbl.setStyleSheet(secondary_text_style(size=11, weight=600))
         text_col.addWidget(title_lbl)
 
         self._value_label = QLabel(value)
@@ -83,7 +84,7 @@ class StatusCard(QFrame):
         self._detail_icon = QLabel()
         self._detail_icon.setStyleSheet("font-size: 11px;")
         self._detail_text = QLabel()
-        self._detail_text.setStyleSheet("color: #9aa4b2; font-size: 11px;")
+        self._detail_text.setStyleSheet(secondary_text_style(size=11))
         self._detail_row.addWidget(self._detail_icon)
         self._detail_row.addWidget(self._detail_text)
         self._detail_row.addStretch(1)

@@ -5,6 +5,7 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLay
 
 from app.core.issue import Issue
 from app.core.risk_level import RiskLevel
+from app.gui.styles import secondary_text_style
 
 _SHIELD_COLOR = {
     RiskLevel.CRITICAL: "#f85149",
@@ -48,17 +49,13 @@ class QuickActionsWidget(QFrame):
         self._placeholder()
 
         self._fix_center_btn = QPushButton("🔧  Open Fix Center (Detailed Fixes)  ›")
-        self._fix_center_btn.setStyleSheet(
-            "QPushButton { background-color: #0d2840; color: #58a6ff; border: 1px solid #1f4060;"
-            " border-radius: 6px; padding: 8px 16px; font-weight: 600; text-align: left; }"
-            "QPushButton:hover { background-color: #102a4a; border-color: #2d6da8; color: #79b8ff; }"
-        )
+        self._fix_center_btn.setObjectName("AccentButton")
         self._fix_center_btn.clicked.connect(self.open_fix_center)
         layout.addWidget(self._fix_center_btn)
 
     def _placeholder(self) -> None:
         lbl = QLabel("Run a scan to see recommended actions.")
-        lbl.setStyleSheet("color: #9aa4b2;")
+        lbl.setStyleSheet(secondary_text_style())
         self._content.addWidget(lbl)
 
     def _build_row(self, issue: Issue) -> QHBoxLayout:

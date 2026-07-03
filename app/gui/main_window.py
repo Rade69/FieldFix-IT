@@ -4,6 +4,7 @@ from PySide6.QtWidgets import QApplication, QHBoxLayout, QLabel, QMainWindow, QP
 from app.gui.dashboard import DashboardPage
 from app.gui.icons import APP_ICON_ICO
 from app.gui.pages.about_page import AboutPage
+from app.gui.pages.scenarios_page import ScenariosPage
 from app.gui.pages.firewall_page import FirewallPage
 from app.gui.pages.fix_center_page import FixCenterPage
 from app.gui.pages.network_page import NetworkPage
@@ -14,6 +15,7 @@ from app.gui.pages.settings_page import SettingsPage
 from app.gui.pages.smb_page import SmbPage
 from app.gui.pages.topology_page import TopologyPage
 from app.gui.sidebar import Sidebar
+from app.gui.styles import secondary_text_style
 from app.gui.top_bar import TopBar
 
 # Order here defines both the sidebar entries and the stacked page order.
@@ -25,6 +27,7 @@ _PAGES = [
     ("Services", ServicesPage),
     ("Printers", PrintersPage),
     ("Topology", TopologyPage),
+    ("Scenarios", ScenariosPage),
     ("Fix Center", FixCenterPage),
     ("Reports", ReportsPage),
     ("Settings", SettingsPage),
@@ -56,7 +59,18 @@ class MainWindow(QMainWindow):
             self.sidebar.setCurrentRow(idx)
 
         _fix_idx = next(i for i, (n, _) in enumerate(_PAGES) if n == "Fix Center")
+        _fix_center = _instances[_fix_idx]
         _instances[0].open_fix_center.connect(lambda: _go(_fix_idx))
+        _instances[0].open_fix.connect(lambda fid: (_go(_fix_idx), _fix_center.scroll_to_fix(fid)))
+
+        _scen_idx = next(i for i, (n, _) in enumerate(_PAGES) if n == "Scenarios")
+        _instances[_scen_idx].open_fix_center.connect(lambda: _go(_fix_idx))
+
+        _prn_idx = next(i for i, (n, _) in enumerate(_PAGES) if n == "Printers")
+        _scen_inst = _instances[_scen_idx]
+        _instances[_prn_idx].fix_printer_requested.connect(
+            lambda name: (_go(_scen_idx), _scen_inst.prepare_fix_printer(name))
+        )
 
         _topo_idx = next(i for i, (n, _) in enumerate(_PAGES) if n == "Topology")
         _instances[0].open_topology.connect(lambda: _go(_topo_idx))
@@ -69,9 +83,29 @@ class MainWindow(QMainWindow):
         body_layout.addWidget(self.pages, stretch=1)
 
         self._top_bar = TopBar()
-        _instances[0].scan_completed.connect(
-            lambda r: self._top_bar.update_network(r.report.network)
-        )
+        def _push_scan(r) -> None:
+            ts = r.scanned_at
+            net = r.report.network
+            prn = r.report.printers
+            smb = r.report.smb
+            svc = r.report.services
+            if net:
+                _instances[_idx("Network")].load_data(net, ts)
+            if prn:
+                _instances[_idx("Printers")].load_data(prn, ts)
+            if smb:
+                _instances[_idx("Sharing / SMB")].load_data(smb, ts)
+            if svc:
+                _instances[_idx("Services")].load_data(svc, ts)
+            if net and prn:
+                _instances[_idx("Topology")].load_data(net, prn, ts)
+            _instances[_idx("Reports")].set_last_result(r)
+            self._top_bar.update_network(net)
+
+        def _idx(name: str) -> int:
+            return next(i for i, (n, _) in enumerate(_PAGES) if n == name)
+
+        _instances[0].scan_completed.connect(_push_scan)
         _settings_idx = next(i for i, (n, _) in enumerate(_PAGES) if n == "Settings")
         self._top_bar.open_settings.connect(lambda: _go(_settings_idx))
 
@@ -97,22 +131,22 @@ class MainWindow(QMainWindow):
         bar.addWidget(mode_lbl)
 
         self._sb_status = QLabel("● Ready")
-        self._sb_status.setStyleSheet("color: #9aa4b2; padding: 0 8px;")
+        self._sb_status.setStyleSheet(secondary_text_style() + " padding: 0 8px;")
         bar.addWidget(self._sb_status)
 
         export_btn = QPushButton("📄 Export Report")
         export_btn.setStyleSheet(
-            "QPushButton { background: transparent; color: #58a6ff; border: none;"
+            "QPushButton { background: transparent; color: #2563EB; border: none;"
             " padding: 2px 8px; font-size: 12px; }"
-            "QPushButton:hover { color: #f0f6fc; }"
+            "QPushButton:hover { color: #1D4ED8; }"
         )
         bar.addPermanentWidget(export_btn)
 
         last_report_btn = QPushButton("📋 Open Last Report")
         last_report_btn.setStyleSheet(
-            "QPushButton { background: transparent; color: #58a6ff; border: none;"
+            "QPushButton { background: transparent; color: #2563EB; border: none;"
             " padding: 2px 8px; font-size: 12px; }"
-            "QPushButton:hover { color: #f0f6fc; }"
+            "QPushButton:hover { color: #1D4ED8; }"
         )
         bar.addPermanentWidget(last_report_btn)
 
